@@ -1,48 +1,110 @@
 body {
-    font-family: sans-serif;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     text-align: center;
-    background: #2c3e50;
+    background: #1a252f;
+    /* Darker, more professional blue */
     color: white;
+    margin: 0;
+    padding: 20px;
+}
+
+.card {
+    background: #34495e;
+    padding: 20px;
+    border-radius: 15px;
+    max-width: 400px;
+    margin: 20px auto;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
 }
 
 input {
-    padding: 10px;
+    padding: 12px;
     margin: 10px;
-    border-radius: 5px;
-    border: none;
+    border-radius: 8px;
+    border: 2px solid #2c3e50;
+    width: 80%;
+    font-size: 1rem;
 }
 
 button {
-    padding: 15px 25px;
+    padding: 12px 24px;
     cursor: pointer;
-    background: #e67e22;
+    background: #3498db;
     color: white;
     border: none;
-    border-radius: 5px;
-}
-
-#buzzer {
-    width: 200px;
-    height: 200px;
-    background: red;
-    border-radius: 50%;
-    margin: 50px auto;
-    line-height: 200px;
-    font-size: 2em;
+    border-radius: 8px;
     font-weight: bold;
-    box-shadow: 0 10px #952619;
+    transition: background 0.2s;
+}
+
+button:hover {
+    background: #2980b9;
+}
+
+/* --- THE BUZZER --- */
+
+#buzzBtn {
+    width: 180px;
+    height: 180px;
+    font-size: 1.8rem;
+    font-weight: 900;
+    color: white;
+    text-transform: uppercase;
+    border: none;
+    border-radius: 50%;
     cursor: pointer;
+    position: relative;
+    outline: none;
     user-select: none;
+
+    /* Radial gradient gives it a 3D spherical look */
+    background: radial-gradient(circle at 30% 30%, #ff5e5e, #e74c3c 70%);
+
+    /* The first shadow is the "depth" (red), the second is the floor shadow (black) */
+    box-shadow:
+        0 15px 0 #c0392b,
+        0 20px 20px rgba(0, 0, 0, 0.4);
+
+    transition: all 0.05s button;
+    display: block;
+    margin: 50px auto;
 }
 
-#buzzer.disabled {
+/* The Press Animation */
+#buzzBtn:active:not(:disabled) {
+    transform: translateY(10px);
+    box-shadow:
+        0 5px 0 #c0392b,
+        0 10px 10px rgba(0, 0, 0, 0.4);
+}
+
+/* Disabled State: The button stays "pressed" or looks "off" */
+#buzzBtn:disabled {
     background: #7f8c8d;
-    box-shadow: 0 10px #5a6263;
-    opacity: 0.5;
-    pointer-events: none;
+    box-shadow: 0 5px 0 #5a6263;
+    transform: translateY(10px);
+    cursor: not-allowed;
+    opacity: 0.8;
 }
 
-#buzzer:active {
-    transform: translateY(4px);
-    box-shadow: 0 6px #952619;
+#winner {
+    font-size: 2rem;
+    color: #f1c40f;
+    /* Gold for the winner */
+    text-shadow: 2px 2px 0 rgba(0, 0, 0, 0.5);
+    margin-top: 20px;
+}
+
+.flash-red {
+    animation: flash 0.5s;
+}
+
+@keyframes flash {
+    0% {
+        background-color: #e74c3c;
+    }
+
+    100% {
+        background-color: #1a252f;
+    }
 }

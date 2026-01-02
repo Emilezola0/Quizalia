@@ -1,69 +1,96 @@
-// alert("script.js chargé !");
+// 1. Import from your firebase.js file
+import { db, ref, set, update, onValue } from "./firebase.js";
 
 let lobbyCode = null;
 let playerName = null;
-let role = null; // "host" ou "player"
+let role = null;
 
+// ... (Your showSection and generateLobbyCode functions remain the same)
 
-const homeSection = document.getElementById("home");
-const lobbySection = document.getElementById("lobby");
-const gameSection = document.getElementById("game");
-
-const createLobbyBtn = document.getElementById("createLobbyBtn");
-const joinLobbyBtn = document.getElementById("joinLobbyBtn");
-
-const lobbyCodeSpan = document.getElementById("lobbyCode");
-
-function showSection(section) {
-    homeSection.hidden = true;
-    lobbySection.hidden = true;
-    gameSection.hidden = true;
-    section.hidden = false;
-}
-
-// 🔹 Génère un faux code pour test
-function generateLobbyCode() {
-    return Math.random().toString(36).substring(2, 6).toUpperCase();
-}
-
+// 🔹 CREATE LOBBY
 createLobbyBtn.addEventListener("click", () => {
     playerName = document.getElementById("hostName").value || "Hôte";
-
     lobbyCode = generateLobbyCode();
     role = "host";
 
-    document.getElementById("lobbyCode").textContent = lobbyCode;
+    // Initialize the room in Firebase
+    const roomRef = ref(db, 'rooms/' + lobbyCode);
+    set(roomRef, {
+        host: playerName,
+        status: "waiting",
+        winner: null,
+        buzzerLocked: true
+    });
 
+    document.getElementById("lobbyCode").textContent = lobbyCode;
+    setupGameListeners();
     showSection(lobbySection);
     updateUIByRole();
-
-    console.log("HOST créé :", lobbyCode);
 });
 
+// 🔹 JOIN LOBBY
 joinLobbyBtn.addEventListener("click", () => {
     playerName = document.getElementById("playerName").value || "Joueur";
     lobbyCode = document.getElementById("lobbyCodeInput").value.toUpperCase();
-
     role = "player";
 
     document.getElementById("lobbyCode").textContent = lobbyCode;
-
+    setupGameListeners();
     showSection(lobbySection);
     updateUIByRole();
-
-    console.log("JOUEUR rejoint :", lobbyCode);
 });
 
-function updateUIByRole() {
-    const hostView = document.getElementById("hostView");
-    const playerView = document.getElementById("playerView");
+// 🔹 BUZZER LOGIC
+document.getElementById("buzzBtn").addEventListener("click", () => {
+    const roomRef = ref(db, 'rooms/' + lobbyCode);
 
-    if (role === "host") {
-        hostView.hidden = false;
-        playerView.hidden = true;
-    } else {
-        hostView.hidden = true;
-        playerView.hidden = false;
-    }
+    // We only update if winner is currently null
+    update(roomRef, {
+        winner: playerName,
+        buzzerLocked: true
+    });
+});
+
+// 🔹 RESET BUTTON (For the Host)
+document.getElementById("resetBuzzBtn").addEventListener("click", () => {
+    const roomRef = ref(db, 'rooms/' + lobbyCode);
+    update(roomRef, {
+        winner: null,
+        buzzerLocked: false
+    });
+});
+
+function setupGameListeners() {
+    if (!lobbyCode) return;
+    const roomRef = ref(db, 'rooms/' + lobbyCode);
+
+    const buzzSound = document.getElementById("buzzSound");
+    const resetSound = document.getElementById("resetSound");
+
+    onValue(roomRef, (snapshot) => {
+        const data = snapshot.val();
+        if (!data) return;
+
+        const winnerDisplay = document.getElementById("winner");
+        const buzzBtn = document.getElementById("buzzBtn");
+
+        // Check if a winner just appeared
+        if (data.winner) {
+            // If the display was "Waiting..." and now there's a winner, PLAY SOUND
+            if (winnerDisplay.textContent === "Waiting..." || winnerDisplay.textContent === "Prêt...") {
+                buzzSound.play();
+                document.body.classList.add("flash-red");
+                setTimeout(() => document.body.classList.remove("flash-red"), 500);
+            }
+            winnerDisplay.textContent = "🏆 " + data.winner + " a buzzé !";
+            buzzBtn.disabled = true;
+        } else {
+            // If it was reset (winner became null), play a reset sound
+            if (winnerDisplay.textContent.includes("🏆")) {
+                resetSound.play();
+            }
+            winnerDisplay.textContent = "Prêt...";
+            buzzBtn.disabled = data.buzzerLocked;
+        }
+    });
 }
-
