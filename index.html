@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Buzzer Quiz - Joueur</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="setup">
+        <h1>Rejoindre la partie</h1>
+        <input type="text" id="teamName" placeholder="Nom de l'équipe">
+        <input type="text" id="roomCode" placeholder="Code du salon">
+        <button onclick="joinGame()">Rejoindre</button>
+    </div>
+
+    <div id="game" style="display:none;">
+        <h2 id="displayTeam">Équipe : ---</h2>
+        <div id="buzzer" class="disabled" onclick="sendBuzz()">BUZZ !</div>
+        <p id="status">En attente du Host...</p>
+    </div>
+
+    <script src="script-player.js"></script>
+</body>
+</html>

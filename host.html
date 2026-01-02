@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Buzzer Quiz - Host</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+    <h1>Tableau de Bord Host</h1>
+    <div id="room-info">
+        <p>Code du salon : <span id="code">GÉNÉRATION...</span></p>
+        <div id="qrcode"></div>
+    </div>
+
+    <hr>
+
+    <div id="controls">
+        <button id="btn-draw" onclick="drawQuestion()">Tirer une question</button>
+        <button id="btn-reset" onclick="resetBuzzers()">Réinitialiser</button>
+    </div>
+
+    <div id="result">
+        <h2>Dernier Buzz :</h2>
+        <div id="winner-display">Personne n'a encore buzzé</div>
+        <button id="btn-validate" style="display:none;" onclick="confirmPoint()">Bonne réponse !</button>
+    </div>
+
+    <script src="script-host.js"></script>
+</body>
+
+</html>
