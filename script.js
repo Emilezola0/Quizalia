@@ -41,20 +41,24 @@ document.getElementById("createLobbyBtn").addEventListener("click", () => {
     });
 });
 
-// --- JOIN LOBBY ---
+// --- JOIN LOBBY  ---
 document.getElementById("joinLobbyBtn").addEventListener("click", () => {
     playerName = document.getElementById("playerName").value || "Joueur";
     lobbyCode = document.getElementById("lobbyCodeInput").value.toUpperCase();
     role = "player";
 
-    // Add self to the players list in Firebase
     const playerListRef = ref(db, `rooms/${lobbyCode}/players`);
-    push(playerListRef, { name: playerName });
 
-    document.getElementById("lobbyCode").textContent = lobbyCode;
-    setupGameListeners();
-    showSection(lobbySection);
-    updateUIByRole();
+    // Wait for the push to finish before showing the lobby
+    push(playerListRef, { name: playerName }).then(() => {
+        document.getElementById("lobbyCode").textContent = lobbyCode;
+        setupGameListeners();
+        showSection(lobbySection);
+        updateUIByRole();
+    }).catch((error) => {
+        console.error("Join error:", error);
+        alert("Impossible de rejoindre. Vérifiez le code !");
+    });
 });
 
 // --- GAME LOGIC ---

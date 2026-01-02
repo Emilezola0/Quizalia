@@ -11,42 +11,45 @@
 
 <body>
 
-    <h1>🎲 Buzzer Game</h1>
+    <!-- HOME -->
+    <h1>🎲 Quizalia Buzzer App</h1>
 
     <section id="home">
         <div class="card">
-            <h3>🎤 Créer un lobby</h3>
+            <h3>🎤 Create a lobby</h3>
             <input type="text" id="hostName" placeholder="Nom de l'hôte">
-            <button id="createLobbyBtn">Créer le lobby</button>
+            <button id="createLobbyBtn">Create lobby</button>
         </div>
 
         <div class="card">
-            <h3>🎮 Rejoindre un lobby</h3>
+            <h3>🎮 Join a lobby</h3>
             <input type="text" id="playerName" placeholder="Ton nom">
             <input type="text" id="lobbyCodeInput" placeholder="Code du lobby">
-            <button id="joinLobbyBtn">Rejoindre</button>
+            <button id="joinLobbyBtn">Join</button>
         </div>
     </section>
 
+    <!-- LOBBY -->
     <section id="lobby" hidden>
         <div class="card">
             <h2>Code: <span id="lobbyCode">---</span></h2>
             <canvas id="qrCode"></canvas>
             <p>👤 Joueurs connectés :</p>
             <ul id="playersList"></ul>
-            <button id="startGameBtn" hidden>Démarrer la partie</button>
+            <button id="startGameBtn" hidden>Start the Game</button>
         </div>
     </section>
 
+    <!-- GAME -->
     <section id="game" hidden>
         <div id="playerView">
             <button id="buzzBtn">BUZZ !</button>
         </div>
 
         <div id="hostView" class="card" hidden>
-            <h3>Résultat :</h3>
-            <p id="winner">Prêt...</p>
-            <button id="resetBuzzBtn">Reset le buzzer</button>
+            <h3>Result :</h3>
+            <p id="winner">Ready...</p>
+            <button id="resetBuzzBtn">Reset buzzer</button>
         </div>
     </section>
 
