@@ -1,0 +1,13 @@
+{
+    "name": "buzzer-game-server",
+    "version": "1.0.0",
+    "description": "Real-time quiz buzzer server",
+    "main": "server.js",
+    "dependencies": {
+        "socket.io": "^4.7.2",
+        "express": "^4.18.2"
+    },
+    "scripts": {
+        "start": "node server.js"
+    }
+}
