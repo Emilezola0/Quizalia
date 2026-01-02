@@ -1,25 +1,56 @@
 <!DOCTYPE html>
 <html lang="fr">
+
 <head>
     <meta charset="UTF-8">
+    <title>Buzzer – Jeu de société</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Buzzer Quiz - Joueur</title>
+
     <link rel="stylesheet" href="style.css">
 </head>
+
 <body>
-    <div id="setup">
-        <h1>Rejoindre la partie</h1>
-        <input type="text" id="teamName" placeholder="Nom de l'équipe">
-        <input type="text" id="roomCode" placeholder="Code du salon">
-        <button onclick="joinGame()">Rejoindre</button>
-    </div>
 
-    <div id="game" style="display:none;">
-        <h2 id="displayTeam">Équipe : ---</h2>
-        <div id="buzzer" class="disabled" onclick="sendBuzz()">BUZZ !</div>
-        <p id="status">En attente du Host...</p>
-    </div>
+    <h1>🎲 Buzzer</h1>
 
-    <script src="script-player.js"></script>
-</body>
-</html>
+    <!-- ================= ACCUEIL ================= -->
+    <section id="home">
+        <h2>Créer ou rejoindre un lobby</h2>
+
+        <!-- Créer un lobby -->
+        <div class="card">
+            <h3>🎤 Créer un lobby</h3>
+            <input type="text" id="hostName" placeholder="Nom de l'hôte">
+            <button id="createLobbyBtn">Créer le lobby</button>
+            <p id="lobbyCodeDisplay"></p>
+            <canvas id="qrCode"></canvas>
+        </div>
+
+        <!-- Rejoindre un lobby -->
+        <div class="card">
+            <h3>🎮 Rejoindre un lobby</h3>
+            <input type="text" id="playerName" placeholder="Ton nom">
+            <input type="text" id="lobbyCodeInput" placeholder="Code du lobby">
+            <button id="joinLobbyBtn">Rejoindre</button>
+            <p id="joinError"></p>
+        </div>
+    </section>
+
+    <!-- ================= LOBBY ================= -->
+    <section id="lobby" hidden>
+        <h2>Lobby : <span id="lobbyCode"></span></h2>
+        <p>👤 Joueurs connectés :</p>
+        <ul id="playersList"></ul>
+
+        <button id="startGameBtn">Démarrer la partie</button>
+    </section>
+
+    <!-- ================= JEU ================= -->
+    <section id="game" hidden>
+        <h2>🚨 BUZZER</h2>
+
+        <!-- Vue joueur -->
+        <div id="playerView">
+            <button id="buzzBtn">BUZZ !</button>
+            <p id="buzzStatus"></p>
+            </
