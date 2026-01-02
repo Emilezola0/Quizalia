@@ -2,7 +2,8 @@ import { db, ref, set, update, onValue, push } from "./firebase.js";
 
 let lobbyCode = null;
 let playerName = null;
-let role = null; // "host" or "player"
+let role = null;
+let countdownInterval = null;
 
 // Elements
 const homeSection = document.getElementById("home");
@@ -11,7 +12,6 @@ const gameSection = document.getElementById("game");
 const buzzSound = document.getElementById("buzzSound");
 const resetSound = document.getElementById("resetSound");
 
-// --- UTILS ---
 function showSection(section) {
     [homeSection, lobbySection, gameSection].forEach(s => s.hidden = true);
     section.hidden = false;
@@ -31,7 +31,8 @@ document.getElementById("createLobbyBtn").addEventListener("click", () => {
         host: playerName,
         status: "waiting",
         winner: null,
-        buzzerLocked: true
+        buzzerLocked: true,
+        blocked: []
     }).then(() => {
         document.getElementById("lobbyCode").textContent = lobbyCode;
         setupGameListeners();
@@ -41,7 +42,7 @@ document.getElementById("createLobbyBtn").addEventListener("click", () => {
     });
 });
 
-// --- JOIN LOBBY  ---
+// --- JOIN LOBBY ---
 document.getElementById("joinLobbyBtn").addEventListener("click", () => {
     playerName = document.getElementById("playerName").value || "Joueur";
     lobbyCode = document.getElementById("lobbyCodeInput").value.toUpperCase();
@@ -49,25 +50,17 @@ document.getElementById("joinLobbyBtn").addEventListener("click", () => {
 
     const playerListRef = ref(db, `rooms/${lobbyCode}/players`);
 
-    // Wait for the push to finish before showing the lobby
     push(playerListRef, { name: playerName }).then(() => {
         document.getElementById("lobbyCode").textContent = lobbyCode;
         setupGameListeners();
         showSection(lobbySection);
         updateUIByRole();
     }).catch((error) => {
-        console.error("Join error:", error);
-        alert("Impossible de rejoindre. Vérifiez le code !");
+        alert("Code de lobby invalide !");
     });
 });
 
-// --- GAME LOGIC ---
-function updateUIByRole() {
-    document.getElementById("startGameBtn").hidden = (role !== "host");
-    document.getElementById("hostView").hidden = (role !== "host");
-    document.getElementById("playerView").hidden = false; // Everyone sees buzzer, but host uses it to test
-}
-
+// --- GM CONTROLS ---
 document.getElementById("startGameBtn").addEventListener("click", () => {
     update(ref(db, 'rooms/' + lobbyCode), {
         status: "playing",
@@ -75,31 +68,79 @@ document.getElementById("startGameBtn").addEventListener("click", () => {
     });
 });
 
-document.getElementById("buzzBtn").addEventListener("click", () => {
-    // 1. Vibrate (if mobile supports it)
-    if ("vibrate" in navigator) {
-        navigator.vibrate(200);
-    }
-
-    // 2. Play sound locally for instant feedback
-    const buzzSound = document.getElementById("buzzSound");
-    buzzSound.play();
-
-    // 3. Update Firebase
-    const roomRef = ref(db, 'rooms/' + lobbyCode);
-    update(roomRef, {
-        winner: playerName,
-        buzzerLocked: true
+document.getElementById("validateBtn").addEventListener("click", () => {
+    update(ref(db, 'rooms/' + lobbyCode), {
+        winner: null,
+        buzzerLocked: false,
+        timerActive: false,
+        blocked: [] // Full reset
     });
+});
+
+document.getElementById("wrongBtn").addEventListener("click", () => {
+    const roomRef = ref(db, 'rooms/' + lobbyCode);
+    onValue(roomRef, (snapshot) => {
+        const data = snapshot.val();
+        if (!data.winner) return;
+
+        let currentBlocks = data.blocked || [];
+        if (!currentBlocks.includes(data.winner)) {
+            currentBlocks.push(data.winner);
+        }
+
+        update(roomRef, {
+            winner: null,
+            buzzerLocked: false,
+            timerActive: false,
+            blocked: currentBlocks
+        });
+    }, { onlyOnce: true });
 });
 
 document.getElementById("resetBuzzBtn").addEventListener("click", () => {
     update(ref(db, 'rooms/' + lobbyCode), {
         winner: null,
-        buzzerLocked: false
+        buzzerLocked: false,
+        blocked: []
     });
 });
 
+// This ensures the setting is saved to Firebase the moment the Host changes the dropdown
+document.getElementById("timerSetting").addEventListener("change", (e) => {
+    if (role === "host") {
+        update(ref(db, 'rooms/' + lobbyCode), {
+            timeLimit: parseInt(e.target.value)
+        });
+    }
+});
+
+// --- PLAYER ACTION ---
+document.getElementById("buzzBtn").addEventListener("click", () => {
+    // Get the current room data to see what timer setting the host chose
+    const roomRef = ref(db, 'rooms/' + lobbyCode);
+
+    onValue(roomRef, (snapshot) => {
+        const data = snapshot.val();
+        // Use the duration set in Firebase, or default to 10 if not found
+        const duration = data.timeLimit || 10;
+
+        update(roomRef, {
+            winner: playerName,
+            buzzerLocked: true,
+            timerActive: true,
+            timeLimit: parseInt(duration)
+        });
+    }, { onlyOnce: true });
+});
+
+function updateUIByRole() {
+    const isHost = (role === "host");
+    document.getElementById("startGameBtn").hidden = !isHost;
+    document.getElementById("hostView").hidden = !isHost;
+    document.getElementById("playerView").hidden = isHost;
+}
+
+// --- THE MAIN LISTENER ---
 function setupGameListeners() {
     const roomRef = ref(db, 'rooms/' + lobbyCode);
 
@@ -107,34 +148,73 @@ function setupGameListeners() {
         const data = snapshot.val();
         if (!data) return;
 
-        // 1. Handle Status
-        if (data.status === "playing") showSection(gameSection);
-
-        // 2. Handle Winner & Sounds
-        const winnerDisplay = document.getElementById("winner");
-        const buzzBtn = document.getElementById("buzzBtn");
-
-        if (data.winner) {
-            if (winnerDisplay.textContent === "Prêt...") buzzSound.play();
-            winnerDisplay.textContent = "🏆 " + data.winner;
-            buzzBtn.disabled = true;
-        } else {
-            if (winnerDisplay.textContent.includes("🏆")) resetSound.play();
-            winnerDisplay.textContent = "Prêt...";
-            buzzBtn.disabled = data.buzzerLocked;
-        }
-
-        // 3. Handle Player List
+        // 1. UPDATE PLAYER LIST (Fix for your issue)
         const listElement = document.getElementById("playersList");
-        listElement.innerHTML = "";
-        if (data.players) {
+        if (listElement && data.players) {
+            listElement.innerHTML = "";
             Object.values(data.players).forEach(p => {
                 const li = document.createElement("li");
-                li.textContent = p.name;
+                li.textContent = "👤 " + p.name;
                 listElement.appendChild(li);
             });
         }
+
+        // 2. STATUS CHECK
+        if (data.status === "playing" && gameSection.hidden) {
+            showSection(gameSection);
+            updateUIByRole();
+        }
+
+        const buzzBtn = document.getElementById("buzzBtn");
+        const gmWinnerName = document.getElementById("activeWinnerName");
+        const statusText = document.getElementById("gameStatusText");
+        const blockedList = data.blocked || [];
+        const isBlocked = blockedList.includes(playerName);
+
+        // 3. WINNER LOGIC
+        if (data.winner) {
+            if (gmWinnerName) gmWinnerName.textContent = data.winner;
+            if (statusText) statusText.textContent = "Réponse en cours...";
+
+            document.body.className = (data.winner === playerName) ? "winner-green" : "loser-red";
+            if (buzzBtn) buzzBtn.disabled = true;
+
+            if (data.timerActive) startLocalTimer(data.timeLimit);
+        } else {
+            if (gmWinnerName) gmWinnerName.textContent = "---";
+            if (statusText) statusText.textContent = "En attente...";
+            document.body.className = "";
+
+            if (buzzBtn) {
+                buzzBtn.disabled = data.buzzerLocked || isBlocked;
+                buzzBtn.textContent = isBlocked ? "BLOQUÉ" : "BUZZ !";
+                buzzBtn.style.opacity = isBlocked ? "0.4" : "1";
+            }
+            clearInterval(countdownInterval);
+            document.getElementById("timerContainer").hidden = true;
+        }
     });
+}
+
+function startLocalTimer(seconds) {
+    clearInterval(countdownInterval);
+    const progressBar = document.getElementById("progressBar");
+    const container = document.getElementById("timerContainer");
+    container.hidden = false;
+
+    let timeLeft = seconds * 10;
+    const totalTime = seconds * 10;
+
+    countdownInterval = setInterval(() => {
+        timeLeft--;
+        const percentage = (timeLeft / totalTime) * 100;
+        progressBar.style.width = percentage + "%";
+
+        if (timeLeft <= 0) {
+            clearInterval(countdownInterval);
+            if (role === "host") document.getElementById("wrongBtn").click();
+        }
+    }, 100);
 }
 
 function generateQRCode(code) {

@@ -1,110 +1,222 @@
+/* --- GLOBAL STYLES --- */
+:root {
+    --primary: #3498db;
+    --success: #2ecc71;
+    --danger: #e74c3c;
+    --warning: #f1c40f;
+    --dark-bg: #0f172a;
+    --card-bg: rgba(30, 41, 59, 0.7);
+}
+
 body {
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
     text-align: center;
-    background: #1a252f;
-    /* Darker, more professional blue */
+    background: radial-gradient(circle at top, #1e293b, var(--dark-bg));
     color: white;
     margin: 0;
     padding: 20px;
+    min-height: 100vh;
+    transition: background-color 0.3s ease;
 }
 
+h1 {
+    font-size: 2.5rem;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    margin-bottom: 30px;
+    text-shadow: 0 0 10px rgba(52, 152, 219, 0.5);
+}
+
+/* --- CARDS & LAYOUT --- */
 .card {
-    background: #34495e;
-    padding: 20px;
-    border-radius: 15px;
-    max-width: 400px;
+    background: var(--card-bg);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    padding: 30px;
+    border-radius: 24px;
+    max-width: 450px;
     margin: 20px auto;
-    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.4);
 }
 
-input {
-    padding: 12px;
-    margin: 10px;
-    border-radius: 8px;
-    border: 2px solid #2c3e50;
-    width: 80%;
+hr {
+    border: 0;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    margin: 20px 0;
+}
+
+/* --- INPUTS & SELECTS --- */
+input,
+select {
+    padding: 14px;
+    margin: 10px 0;
+    border-radius: 12px;
+    border: 2px solid rgba(255, 255, 255, 0.1);
+    background: rgba(15, 23, 42, 0.6);
+    color: white;
+    width: 90%;
     font-size: 1rem;
+    transition: border-color 0.2s;
 }
 
+input:focus {
+    outline: none;
+    border-color: var(--primary);
+}
+
+/* --- BUTTONS --- */
 button {
-    padding: 12px 24px;
+    padding: 14px 28px;
     cursor: pointer;
-    background: #3498db;
+    background: var(--primary);
     color: white;
     border: none;
-    border-radius: 8px;
+    border-radius: 12px;
     font-weight: bold;
-    transition: background 0.2s;
+    font-size: 1rem;
+    transition: all 0.2s transform;
+    box-shadow: 0 4px 15px rgba(52, 152, 219, 0.3);
 }
 
 button:hover {
-    background: #2980b9;
+    filter: brightness(1.1);
+    transform: translateY(-2px);
 }
 
-/* --- THE BUZZER --- */
+button:active {
+    transform: translateY(0);
+}
 
+/* --- THE BUZZER (PRO 3D LOOK) --- */
 #buzzBtn {
-    width: 180px;
-    height: 180px;
-    font-size: 1.8rem;
+    width: 220px;
+    height: 220px;
+    font-size: 2.2rem;
     font-weight: 900;
-    color: white;
     text-transform: uppercase;
-    border: none;
     border-radius: 50%;
-    cursor: pointer;
-    position: relative;
-    outline: none;
-    user-select: none;
-
-    /* Radial gradient gives it a 3D spherical look */
-    background: radial-gradient(circle at 30% 30%, #ff5e5e, #e74c3c 70%);
-
-    /* The first shadow is the "depth" (red), the second is the floor shadow (black) */
-    box-shadow:
-        0 15px 0 #c0392b,
-        0 20px 20px rgba(0, 0, 0, 0.4);
-
-    transition: all 0.05s button;
+    border: none;
     display: block;
-    margin: 50px auto;
+    margin: 40px auto;
+    cursor: pointer;
+    user-select: none;
+    background: radial-gradient(circle at 35% 35%, #ff6b6b, #c0392b);
+    box-shadow:
+        0 15px 0 #962d22,
+        0 25px 40px rgba(0, 0, 0, 0.5);
+    transition: all 0.1s ease;
 }
 
-/* The Press Animation */
 #buzzBtn:active:not(:disabled) {
     transform: translateY(10px);
     box-shadow:
-        0 5px 0 #c0392b,
-        0 10px 10px rgba(0, 0, 0, 0.4);
+        0 5px 0 #962d22,
+        0 10px 20px rgba(0, 0, 0, 0.5);
 }
 
-/* Disabled State: The button stays "pressed" or looks "off" */
 #buzzBtn:disabled {
-    background: #7f8c8d;
-    box-shadow: 0 5px 0 #5a6263;
-    transform: translateY(10px);
+    filter: grayscale(0.8) contrast(0.5);
+    opacity: 0.4;
     cursor: not-allowed;
-    opacity: 0.8;
+    box-shadow: 0 5px 0 #555;
+    transform: translateY(10px);
 }
 
-#winner {
-    font-size: 2rem;
-    color: #f1c40f;
-    /* Gold for the winner */
-    text-shadow: 2px 2px 0 rgba(0, 0, 0, 0.5);
+/* --- GAME MASTER PANEL --- */
+.gm-controls {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 12px;
     margin-top: 20px;
 }
 
-.flash-red {
-    animation: flash 0.5s;
+.btn-gm {
+    padding: 18px;
+    border-radius: 16px;
+    font-size: 1.1rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
 }
 
-@keyframes flash {
-    0% {
-        background-color: #e74c3c;
-    }
+.green {
+    background: var(--success);
+    box-shadow: 0 4px 15px rgba(46, 204, 113, 0.4);
+}
 
-    100% {
-        background-color: #1a252f;
-    }
+.orange {
+    background: #e67e22;
+    box-shadow: 0 4px 15px rgba(230, 126, 34, 0.4);
+}
+
+.gray {
+    background: #64748b;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+}
+
+#activeWinnerName {
+    font-size: 3.5rem;
+    color: var(--warning);
+    margin: 15px 0;
+    font-weight: 800;
+    text-shadow: 0 0 20px rgba(241, 196, 15, 0.4);
+}
+
+/* --- PROGRESS TIMER --- */
+#progressBarContainer {
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 50px;
+    padding: 4px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+#progressBar {
+    height: 12px;
+    border-radius: 50px;
+    background: linear-gradient(90deg, #2ecc71, #27ae60);
+    transition: width 0.1s linear;
+}
+
+/* --- PLAYER LIST --- */
+#playersList {
+    list-style: none;
+    padding: 0;
+    text-align: left;
+    max-height: 150px;
+    overflow-y: auto;
+}
+
+#playersList li {
+    background: rgba(255, 255, 255, 0.05);
+    margin-bottom: 8px;
+    padding: 10px 15px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+}
+
+#playersList li::before {
+    content: "●";
+    color: var(--success);
+    margin-right: 10px;
+}
+
+/* --- STATE FEEDBACK --- */
+body.winner-green {
+    background: #064e3b !important;
+}
+
+body.loser-red {
+    background: #7f1d1d !important;
+}
+
+body.host-bg {
+    background: #1e293b !important;
+}
+
+/* QR Code Styling */
+#qrCode {
+    background: white;
+    padding: 10px;
+    border-radius: 12px;
+    margin-top: 15px;
 }

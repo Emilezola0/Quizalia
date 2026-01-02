@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="fr">
+<html lang="en">
 
 <head>
     <meta charset="UTF-8">
-    <title>Quizalia</title>
+    <title>Quizalia - Buzzer Battle</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="style.css">
     <script src="https://cdn.jsdelivr.net/npm/qrious@4.0.2/dist/qrious.min.js"></script>
@@ -11,45 +11,76 @@
 
 <body>
 
-    <!-- HOME -->
     <h1>🎲 Quizalia Buzzer App</h1>
 
     <section id="home">
         <div class="card">
-            <h3>🎤 Create a lobby</h3>
-            <input type="text" id="hostName" placeholder="Nom de l'hôte">
-            <button id="createLobbyBtn">Create lobby</button>
+            <h3>🎤 Create a Lobby</h3>
+            <input type="text" id="hostName" placeholder="Enter Host Name">
+            <button id="createLobbyBtn">Create Lobby</button>
         </div>
 
         <div class="card">
-            <h3>🎮 Join a lobby</h3>
-            <input type="text" id="playerName" placeholder="Ton nom">
-            <input type="text" id="lobbyCodeInput" placeholder="Code du lobby">
-            <button id="joinLobbyBtn">Join</button>
+            <h3>🎮 Join a Lobby</h3>
+            <input type="text" id="playerName" placeholder="Enter Your Name">
+            <input type="text" id="lobbyCodeInput" placeholder="Enter Lobby Code">
+            <button id="joinLobbyBtn">Join Lobby</button>
         </div>
     </section>
 
-    <!-- LOBBY -->
     <section id="lobby" hidden>
         <div class="card">
-            <h2>Code: <span id="lobbyCode">---</span></h2>
+            <h2>Lobby Code: <span id="lobbyCode">---</span></h2>
             <canvas id="qrCode"></canvas>
-            <p>👤 Joueurs connectés :</p>
+            <hr>
+            <p>👤 Connected Players:</p>
             <ul id="playersList"></ul>
+
             <button id="startGameBtn" hidden>Start the Game</button>
         </div>
     </section>
 
-    <!-- GAME -->
     <section id="game" hidden>
+
+        <div id="timerContainer" hidden class="card">
+            <div id="progressBarContainer"
+                style="width: 100%; background: #eee; height: 15px; border-radius: 10px; overflow: hidden;">
+                <div id="progressBar"
+                    style="width: 100%; height: 100%; background: #27ae60; transition: width 0.1s linear;"></div>
+            </div>
+        </div>
+
         <div id="playerView">
             <button id="buzzBtn">BUZZ !</button>
         </div>
 
         <div id="hostView" class="card" hidden>
-            <h3>Result :</h3>
-            <p id="winner">Ready...</p>
-            <button id="resetBuzzBtn">Reset buzzer</button>
+            <h2>🎙️ Control Panel</h2>
+            <div id="buzzResult">
+                <p>Status: <span id="gameStatusText">Waiting for a buzz...</span></p>
+                <h1 id="activeWinnerName" style="color: #f1c40f;">---</h1>
+            </div>
+
+            <div class="gm-controls">
+                <button id="validateBtn" class="btn-gm green">✅ CORRECT ANSWER</button>
+                <button id="wrongBtn" class="btn-gm orange">❌ WRONG (Block Player)</button>
+                <button id="resetBuzzBtn" class="btn-gm gray">🔄 RESET ROUND</button>
+            </div>
+
+            <div class="settings">
+                <label>Timer Duration (sec): </label>
+                <div class="settings">
+                    <label>Timer Duration: </label>
+                    <select id="timerSetting">
+                        <option value="5">5 Seconds</option>
+                        <option value="10" selected>10 Seconds</option>
+                        <option value="15">15 Seconds</option>
+                        <option value="20">20 Seconds</option>
+                        <option value="25">25 Seconds</option>
+                        <option value="30">30 Seconds</option>
+                    </select>
+                </div>
+            </div>
         </div>
     </section>
 
