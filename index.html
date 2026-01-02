@@ -2,74 +2,58 @@
 <html lang="fr">
 
 <head>
-    <script src="https://cdn.jsdelivr.net/npm/qrious@4.0.2/dist/qrious.min.js"></script>
     <meta charset="UTF-8">
-    <title>Buzzer – Jeu de société</title>
+    <title>Quizalia</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
     <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/qrious@4.0.2/dist/qrious.min.js"></script>
 </head>
 
 <body>
 
-    <h1>🎲 Buzzer</h1>
+    <h1>🎲 Buzzer Game</h1>
 
-    <!-- ================= ACCUEIL ================= -->
     <section id="home">
-        <h2>Créer ou rejoindre un lobby</h2>
-
-        <!-- Créer un lobby -->
         <div class="card">
             <h3>🎤 Créer un lobby</h3>
             <input type="text" id="hostName" placeholder="Nom de l'hôte">
             <button id="createLobbyBtn">Créer le lobby</button>
-            <p id="lobbyCodeDisplay"></p>
-            <canvas id="qrCode"></canvas>
         </div>
 
-        <!-- Rejoindre un lobby -->
         <div class="card">
             <h3>🎮 Rejoindre un lobby</h3>
             <input type="text" id="playerName" placeholder="Ton nom">
             <input type="text" id="lobbyCodeInput" placeholder="Code du lobby">
             <button id="joinLobbyBtn">Rejoindre</button>
-            <p id="joinError"></p>
         </div>
     </section>
 
-    <!-- ================= LOBBY ================= -->
     <section id="lobby" hidden>
-        <h2>Lobby : <span id="lobbyCode"></span></h2>
-        <p>👤 Joueurs connectés :</p>
-        <ul id="playersList"></ul>
-
-        <button id="startGameBtn">Démarrer la partie</button>
+        <div class="card">
+            <h2>Code: <span id="lobbyCode">---</span></h2>
+            <canvas id="qrCode"></canvas>
+            <p>👤 Joueurs connectés :</p>
+            <ul id="playersList"></ul>
+            <button id="startGameBtn" hidden>Démarrer la partie</button>
+        </div>
     </section>
 
-    <!-- ================= JEU ================= -->
     <section id="game" hidden>
-        <h2>🚨 BUZZER</h2>
-
-        <!-- Vue joueur -->
         <div id="playerView">
             <button id="buzzBtn">BUZZ !</button>
         </div>
 
-        <!-- Vue hôte -->
-        <div id="hostView" hidden>
-            <h3>Premier buzz :</h3>
-            <p id="winner"></p>
-
+        <div id="hostView" class="card" hidden>
+            <h3>Résultat :</h3>
+            <p id="winner">Prêt...</p>
             <button id="resetBuzzBtn">Reset le buzzer</button>
         </div>
     </section>
 
-    <script type="module" src="script.js"></script>
-
-    <!-- SOUNDS -->
     <audio id="buzzSound" src="https://actions.google.com/sounds/v1/alarms/alarm_clock_short.ogg"></audio>
     <audio id="resetSound" src="https://actions.google.com/sounds/v1/foley/door_bell.ogg"></audio>
 
+    <script type="module" src="script.js"></script>
 </body>
 
 </html>

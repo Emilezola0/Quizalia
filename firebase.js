@@ -1,6 +1,6 @@
 // Import the functions you need from the SDKs you need
-import { initializeApp } from "firebase/app";
-import { getDatabase, ref, set, update, onValue } from "firebase/database";
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import { getDatabase, ref, set, update, onValue, push } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 // TODO: Add SDKs for Firebase products that you want to use
 // https://firebase.google.com/docs/web/setup#available-libraries
 
@@ -8,6 +8,7 @@ import { getDatabase, ref, set, update, onValue } from "firebase/database";
 const firebaseConfig = {
     apiKey: "AIzaSyA2xlgFKAXVk5PaEvIRVnHjo2f3gg1dtJA",
     authDomain: "quizalia-dfe62.firebaseapp.com",
+    databaseURL: "https://quizalia-dfe62-default-rtdb.europe-west1.firebasedatabase.app",
     projectId: "quizalia-dfe62",
     storageBucket: "quizalia-dfe62.firebasestorage.app",
     messagingSenderId: "53487317404",
@@ -18,4 +19,4 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 export const db = getDatabase(app);
 // Export the functions so you don't have to import them from the SDK again in script.js
-export { ref, set, update, onValue };
+export { ref, set, update, onValue, push };
