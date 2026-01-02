@@ -1,5 +1,10 @@
 // alert("script.js chargé !");
 
+let lobbyCode = null;
+let playerName = null;
+let role = null; // "host" ou "player"
+
+
 const homeSection = document.getElementById("home");
 const lobbySection = document.getElementById("lobby");
 const gameSection = document.getElementById("game");
@@ -22,13 +27,43 @@ function generateLobbyCode() {
 }
 
 createLobbyBtn.addEventListener("click", () => {
-    const code = generateLobbyCode();
-    lobbyCodeSpan.textContent = code;
+    playerName = document.getElementById("hostName").value || "Hôte";
+
+    lobbyCode = generateLobbyCode();
+    role = "host";
+
+    document.getElementById("lobbyCode").textContent = lobbyCode;
+
     showSection(lobbySection);
+    updateUIByRole();
+
+    console.log("HOST créé :", lobbyCode);
 });
 
 joinLobbyBtn.addEventListener("click", () => {
-    const code = document.getElementById("lobbyCodeInput").value;
-    lobbyCodeSpan.textContent = code || "????";
+    playerName = document.getElementById("playerName").value || "Joueur";
+    lobbyCode = document.getElementById("lobbyCodeInput").value.toUpperCase();
+
+    role = "player";
+
+    document.getElementById("lobbyCode").textContent = lobbyCode;
+
     showSection(lobbySection);
+    updateUIByRole();
+
+    console.log("JOUEUR rejoint :", lobbyCode);
 });
+
+function updateUIByRole() {
+    const hostView = document.getElementById("hostView");
+    const playerView = document.getElementById("playerView");
+
+    if (role === "host") {
+        hostView.hidden = false;
+        playerView.hidden = true;
+    } else {
+        hostView.hidden = true;
+        playerView.hidden = false;
+    }
+}
+
