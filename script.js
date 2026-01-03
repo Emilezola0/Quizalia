@@ -378,6 +378,10 @@ function setupGameListeners() {
         const data = snapshot.val();
         if (!data) return;
 
+        if (data.timeLimit) {
+            syncTimerSelect(data.timeLimit);
+        }
+
         // If a new winner is detected, play the sound
         if (data.winner && data.winner !== lastWinner) {
             if (data.winnerSound && buzzerSounds[data.winnerSound]) {
@@ -544,6 +548,30 @@ function populateBuzzerMenus() {
         };
     });
 }
+
+//#region Timer
+
+const timeLimitSelect = document.getElementById("timeLimitSelect");
+
+if (timeLimitSelect) {
+    timeLimitSelect.onchange = (e) => {
+        const newLimit = parseInt(e.target.value);
+        if (lobbyCode && role === "host") {
+            update(ref(db, 'rooms/' + lobbyCode), {
+                timeLimit: newLimit
+            });
+            console.log("Timer updated to:", newLimit);
+        }
+    };
+}
+
+function syncTimerSelect(value) {
+    if (timeLimitSelect) {
+        timeLimitSelect.value = value;
+    }
+}
+
+//#endregion
 
 // Call this ONCE at the end of the script
 populateBuzzerMenus();

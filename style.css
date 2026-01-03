@@ -126,6 +126,11 @@ button:active {
     transform: translateY(10px);
 }
 
+body:has(#slotMachineOverlay:not([hidden])),
+body:has(.full-overlay:not([hidden])) {
+    transition: none !important;
+}
+
 /* --- SLOT MACHINE --- */
 #slotMachineOverlay {
     position: fixed;
@@ -133,6 +138,7 @@ button:active {
     left: 0;
     width: 100vw;
     height: 100vh;
+    background-color: #030712 !important;
     background: radial-gradient(circle, #1e293b 0%, #030712 100%);
     z-index: 9999;
     display: flex;
@@ -193,21 +199,19 @@ button:active {
 }
 
 .winner-glow {
-    animation: screenFlash 0.5s ease 4;
+    animation: screenFlash 0.4s ease 4 !important;
 }
 
 @keyframes screenFlash {
 
     0%,
     100% {
-        background: radial-gradient(circle, #1e293b 0%, #030712 100%);
+        background-color: #030712;
     }
 
     50% {
-        background: #1e3a8a;
+        background-color: #1e3a8a;
     }
-
-    /* Deep blue flash */
 }
 
 /* --- GRID & CARDS (YOUR ORIGINAL) --- */
@@ -290,6 +294,62 @@ button:active {
 }
 
 /* --- BUTTON SPACING FIX --- */
+#themeListModal {
+    background: rgba(15, 23, 42, 0.98);
+    /* Très sombre et opaque */
+    backdrop-filter: blur(20px);
+}
+
+#themeButtonsContainer {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 15px;
+    /* Espace entre les boutons */
+    width: 100%;
+    max-width: 900px;
+    max-height: 70vh;
+    /* Limite la hauteur à 70% de l'écran */
+    overflow-y: auto;
+    /* Active le scroll box */
+    padding: 20px;
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 20px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Personnalisation du scrollbar pour le style Cyberpunk */
+#themeButtonsContainer::-webkit-scrollbar {
+    width: 8px;
+}
+
+#themeButtonsContainer::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 10px;
+}
+
+#themeButtonsContainer::-webkit-scrollbar-thumb {
+    background: var(--primary);
+    border-radius: 10px;
+}
+
+/* Style des boutons DANS la liste de sélection */
+#themeButtonsContainer .btn-gm {
+    margin: 0;
+    /* On retire les marges automatiques */
+    padding: 20px 10px;
+    height: auto;
+    font-size: 0.9rem;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: none;
+    /* On retire l'effet 3D lourd pour la liste */
+}
+
+#themeButtonsContainer .btn-gm:hover {
+    background: var(--primary);
+    transform: scale(1.05);
+}
+
 .theme-controls {
     display: flex;
     flex-wrap: wrap;
@@ -298,6 +358,15 @@ button:active {
     gap: 15px;
     /* Adds space between buttons */
     margin-bottom: 20px;
+}
+
+/* Add this if you want the themes to sit in a scrolling box instead of a dropdown */
+.theme-scroll-container {
+    max-height: 200px;
+    overflow-y: auto;
+    border-radius: 12px;
+    background: rgba(0, 0, 0, 0.2);
+    padding: 10px;
 }
 
 /* --- TEXT BOUNDS FIX --- */
@@ -527,24 +596,33 @@ body.loser-red {
 
 /* --- CUSTOM SELECT STYLING --- */
 .custom-select {
-    padding: 14px;
-    margin: 10px 0;
-    border-radius: 12px;
-    border: 2px solid rgba(255, 255, 255, 0.1);
-    background: rgba(15, 23, 42, 0.8);
-    /* Slightly darker for depth */
+    padding: 16px 20px;
+    /* More breathing room */
+    margin: 15px 0;
+    border-radius: 16px;
+    border: 2px solid rgba(255, 255, 255, 0.2);
+    background: rgba(15, 23, 42, 0.9);
     color: white;
-    width: 95%;
-    /* Matches your input width */
-    font-size: 1rem;
+    width: 100%;
+    /* Full width of its container */
+    max-width: 400px;
+    font-size: 1.1rem;
+    font-weight: 500;
     cursor: pointer;
     appearance: none;
-    /* Removes default browser arrow */
     background-image: url("data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
     background-repeat: no-repeat;
-    background-position: right 15px center;
+    background-position: right 20px center;
     background-size: 18px;
-    transition: all 0.2s;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+}
+
+/* This targets the dropdown list in some browsers */
+.custom-select option {
+    background: #1e293b;
+    color: white;
+    padding: 12px;
 }
 
 .custom-select:focus {
@@ -641,4 +719,84 @@ body.loser-red {
     to {
         box-shadow: 0 0 25px #ff0000;
     }
+}
+
+/* --- IMPROVED HOST VIEW LAYOUT --- */
+
+/* Expand the Card to allow more room */
+#hostView .theme-controls.card {
+    min-height: 420px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    padding: 25px;
+    max-width: 500px;
+    /* Slightly wider for the grid */
+}
+
+/* 2-Column Grid for Buttons */
+.host-button-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
+    width: 100%;
+}
+
+/* Reset buttons inside grid to look consistent */
+.host-button-grid button {
+    margin: 0;
+    width: 100%;
+    padding: 15px 5px;
+    font-size: 0.9rem;
+}
+
+/* Horizontal Neon Timer Section */
+.timer-section {
+    margin-top: auto;
+    padding-top: 20px;
+}
+
+.timer-separator {
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--primary), transparent);
+    margin-bottom: 20px;
+    opacity: 0.6;
+}
+
+.timer-config {
+    display: flex;
+    flex-direction: row;
+    /* Horizontal layout */
+    justify-content: center;
+    align-items: center;
+    gap: 15px;
+}
+
+.neon-label {
+    font-size: 0.75rem;
+    font-weight: bold;
+    color: #8be9fd;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    text-shadow: 0 0 10px rgba(139, 233, 253, 0.4);
+    white-space: nowrap;
+}
+
+/* Sleek Neon Select */
+.neon-select {
+    background: #0f172a;
+    color: white;
+    border: 1px solid var(--primary);
+    border-radius: 6px;
+    padding: 6px 15px;
+    font-weight: bold;
+    cursor: pointer;
+    outline: none;
+    box-shadow: 0 0 10px rgba(52, 152, 219, 0.2);
+    transition: 0.3s;
+}
+
+.neon-select:hover {
+    border-color: #8be9fd;
+    box-shadow: 0 0 15px rgba(139, 233, 253, 0.5);
 }

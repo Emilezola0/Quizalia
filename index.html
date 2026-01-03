@@ -74,14 +74,32 @@
                 <button id="selectThemeBtn">📂 Pick Theme</button>
                 <button id="keepThemeBtn">🔁 Keep Last</button>
                 <button id="manualModeBtn" class="btn-gm gray">⚡ Manual Buzzer</button>
+
+                <div class="timer-separator"></div>
+                <div class="timer-config">
+                    <span>⏱️ TIMER DURATION</span>
+                    <select id="timeLimitSelect" class="neon-select">
+                        <option value="5">5s</option>
+                        <option value="10" selected>10s</option>
+                        <option value="15">15s</option>
+                        <option value="20">20s</option>
+                        <option value="30">30s</option>
+                        <option value="45">45s</option>
+                        <option value="60">60s</option>
+                    </select>
+                </div>
+                <hr>
             </div>
 
             <!-- THEME LIST MODAL -->
-            <div id="themeListModal" class="card" hidden
-                style="position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); z-index:1100; max-height: 80vh; overflow-y: auto;">
-                <h3>Select a Theme</h3>
+            <div id="themeListModal" hidden>
+                <div style="display:flex; justify-content: space-between; align-items: center;">
+                    <h3 style="margin:0;">📂 Choose Theme</h3>
+                    <button onclick="document.getElementById('themeListModal').hidden = true"
+                        style="padding: 5px 15px; background: var(--danger);">X</button>
+                </div>
+
                 <div id="themeButtonsContainer"></div>
-                <button onclick="document.getElementById('themeListModal').hidden = true">Close</button>
             </div>
 
             <!-- GAME MASTER ACTION PANNEL -->
