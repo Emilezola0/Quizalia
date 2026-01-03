@@ -12,6 +12,7 @@ let currentIndex = 0;
 let isSpinningLocally = false;
 let lastSeed = null;
 let lastWinner = null;
+let lastSelectedTheme = null;
 
 // --- BUZZER SOUND CONFIG ---
 const buzzerSounds = {
@@ -195,6 +196,7 @@ function startSyncedSpin() {
 }
 
 function directSelectTheme(themeObj) {
+    if (!themeObj) return;
     update(ref(db, 'rooms/' + lobbyCode), {
         activeCard: themeObj,
         winner: null,
@@ -247,6 +249,7 @@ async function spinTheWheel(targetThemeIndex) {
 
         // FIX: Use getTheme helper to handle index 0 -> Last Item wrap-around
         const finalWinnerTheme = getTheme(targetThemeIndex - 1);
+        lastSelectedTheme = finalWinnerTheme;
 
         overlay.classList.add("winner-glow");
 
@@ -256,8 +259,9 @@ async function spinTheWheel(targetThemeIndex) {
             isSpinningLocally = false;
 
             if (role === "host") {
-                // Update global currentIndex so "Keep Theme" works
-                currentIndex = ((targetThemeIndex - 1 % questionBank.length) + questionBank.length) % questionBank.length;
+                // FIX: Ensure currentIndex is synced with the winning theme index
+                // We use the same math as finalWinnerTheme to keep it consistent
+                currentIndex = ((targetThemeIndex - 1) % questionBank.length + questionBank.length) % questionBank.length;
 
                 update(ref(db, 'rooms/' + lobbyCode), {
                     activeCard: finalWinnerTheme,
@@ -278,11 +282,19 @@ async function spinTheWheel(targetThemeIndex) {
 document.getElementById("randomThemeBtn").onclick = () => startSyncedSpin();
 
 document.getElementById("keepThemeBtn").onclick = () => {
-    // We use the currentIndex which was set by the last spin or selection
-    const themeObj = questionBank[currentIndex];
-    if (themeObj) {
-        directSelectTheme(themeObj);
+    if (!lastSelectedTheme) {
+        console.error("No theme to keep yet!");
+        return;
     }
+
+    // 1. Update local UI
+    const themeIndex = questionBank.findIndex(q => q.Theme === lastSelectedTheme.Theme);
+    if (themeIndex !== -1) initSlots(themeIndex);
+
+    // 2. Update Firebase
+    directSelectTheme(lastSelectedTheme);
+
+    console.log("Keeping Theme:", lastSelectedTheme.Theme);
 };
 
 document.getElementById("selectThemeBtn").onclick = () => {
@@ -295,6 +307,7 @@ document.getElementById("selectThemeBtn").onclick = () => {
         btn.onclick = () => {
             initSlots(idx);
             directSelectTheme(q);
+            lastSelectedTheme = q;
             document.getElementById("themeListModal").hidden = true;
         };
         container.appendChild(btn);
