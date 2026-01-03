@@ -525,21 +525,25 @@ body:has(.full-overlay:not([hidden])) {
 
 /* Mobile responsive buttons */
 @media (max-width: 480px) {
+    #gmActionPanel {
+        /* This creates a 'blank' space at the bottom of the card 
+           so the table can be scrolled into view above the buttons */
+        padding-bottom: 180px !important;
+    }
+
     .gm-controls {
         display: grid;
         grid-template-columns: 1fr 1fr;
-        /* 2x2 grid is much easier for thumbs */
         gap: 10px;
-        position: fixed;
-        /* Optional: Keep controls at bottom */
-        bottom: 0;
-        left: 0;
-        background: rgba(15, 23, 42, 0.9);
-        padding: 15px 15px calc(15px + var(--safe-bottom));
+
+        /* CHANGE THESE: */
+        position: relative;
+        /* Change from fixed to relative */
+        margin-top: 20px;
+        /* Add space between table and buttons */
+        background: none;
+        /* Remove the dark background bar */
         width: 100%;
-        box-sizing: border-box;
-        border-top: 1px solid rgba(255, 255, 255, 0.1);
-        z-index: 3000;
     }
 
     .btn-gm {
@@ -550,16 +554,16 @@ body:has(.full-overlay:not([hidden])) {
 
     /* Add padding to the container so the bottom buttons don't cover content */
     #hostView {
-        padding-bottom: 220px !important;
-        /* Increased space for the 2x2 grid */
-        overflow-y: auto;
+        padding-bottom: 20px !important;
+        /* Reset the huge padding */
     }
 
     .answer-table {
-        margin-bottom: 20px;
-        display: block;
-        /* Allows table to be scrolled horizontally if needed */
-        overflow-x: auto;
+        width: 100%;
+        table-layout: fixed;
+        /* Forces cells to stay equal width */
+        word-wrap: break-word;
+        /* Prevents long text from pushing table off-screen */
     }
 }
 
@@ -583,10 +587,10 @@ body:has(.full-overlay:not([hidden])) {
 }
 
 .answer-table td {
-    padding: 10px;
-    background: rgba(255, 255, 255, 0.05);
-    border-radius: 6px;
-    font-size: 0.9rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    /* Keeps the table neat */
 }
 
 /* --- PLAYER LIST & MISC --- */
