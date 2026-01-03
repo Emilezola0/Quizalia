@@ -6,6 +6,7 @@
     --warning: #f1c40f;
     --dark-bg: #0f172a;
     --card-bg: rgba(30, 41, 59, 0.7);
+    --safe-bottom: env(safe-area-inset-bottom);
 }
 
 /* CRITICAL FIX: 
@@ -26,6 +27,18 @@ body {
     min-height: 100vh;
     transition: background-color 0.3s ease;
     overflow-x: hidden;
+    touch-action: manipulation;
+    /* Prevents double-tap to zoom delay */
+    -webkit-tap-highlight-color: transparent;
+    /* Removes the ugly blue box on tap */
+}
+
+/* Fix for iOS input zoom */
+input,
+select,
+textarea {
+    font-size: 16px !important;
+    /* iOS zooms in automatically if font-size < 16px */
 }
 
 h1 {
@@ -111,6 +124,13 @@ button:active {
     background: radial-gradient(circle at 35% 35%, #ff6b6b, #c0392b);
     box-shadow: 0 15px 0 #962d22, 0 25px 40px rgba(0, 0, 0, 0.5);
     transition: all 0.1s ease;
+    width: min(70vw, 250px);
+    /* Responsive width: 70% of screen or max 250px */
+    height: min(70vw, 250px);
+    margin: 20px auto;
+    font-size: clamp(1.5rem, 8vw, 2.2rem);
+    -webkit-user-select: none;
+    /* Prevents text selection while tapping fast */
 }
 
 #buzzBtn:active:not(:disabled) {
@@ -195,7 +215,7 @@ body:has(.full-overlay:not([hidden])) {
 
 /* --- VFX --- */
 .spinning-blur {
-    filter: blur(6px);
+    filter: blur(1px);
 }
 
 .winner-glow {
@@ -217,19 +237,21 @@ body:has(.full-overlay:not([hidden])) {
 /* --- GRID & CARDS (YOUR ORIGINAL) --- */
 .grid-layout {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    grid-template-columns: 1fr;
     gap: 20px;
     width: 95%;
     max-width: 1200px;
+    padding: 0 10px;
+    box-sizing: border-box;
     margin: auto;
 }
 
 .box {
-    padding: 25px;
+    padding: 15px;
     border-radius: 18px;
     color: white;
     text-align: left;
-    min-height: 180px;
+    min-height: 140px;
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
     word-wrap: break-word;
     overflow-wrap: break-word;
@@ -249,8 +271,23 @@ body:has(.full-overlay:not([hidden])) {
 
 /* RESPONSIVE TEXT */
 @media (max-width: 600px) {
+    .slot-machine-wrap::after {
+        width: 95%;
+        height: 25vh;
+        /* Slightly shorter for mobile height */
+        top: 32.5vh;
+        border-width: 4px;
+    }
+
     .slot-card {
-        font-size: 2.5rem;
+        height: 25vh;
+        min-height: 25vh;
+        font-size: 2rem;
+    }
+
+    .full-overlay {
+        padding: 20px 10px;
+        /* Tighter padding for more content room */
     }
 }
 
@@ -475,13 +512,31 @@ body:has(.full-overlay:not([hidden])) {
 /* Mobile responsive buttons */
 @media (max-width: 480px) {
     .gm-controls {
-        flex-wrap: wrap;
-        /* Let them stack on tiny phones so they don't overflow */
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        /* 2x2 grid is much easier for thumbs */
+        gap: 10px;
+        position: fixed;
+        /* Optional: Keep controls at bottom */
+        bottom: 0;
+        left: 0;
+        background: rgba(15, 23, 42, 0.9);
+        padding: 15px 15px calc(15px + var(--safe-bottom));
+        width: 100%;
+        box-sizing: border-box;
+        border-top: 1px solid rgba(255, 255, 255, 0.1);
+        z-index: 3000;
     }
 
     .btn-gm {
-        flex: 1 1 45%;
-        /* Two buttons per row on mobile */
+        padding: 15px 5px;
+        /* Taller tap targets */
+        font-size: 0.85rem;
+    }
+
+    /* Add padding to the container so the bottom buttons don't cover content */
+    #hostView {
+        padding-bottom: 180px;
     }
 }
 
