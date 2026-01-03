@@ -287,6 +287,25 @@ body:has(.full-overlay:not([hidden])) {
 
 /* RESPONSIVE TEXT */
 @media (max-width: 600px) {
+    .grid-layout {
+        grid-template-columns: 1fr !important;
+        /* Force single column */
+        width: 100%;
+        padding: 0 5px;
+    }
+
+    .box {
+        padding: 15px;
+        font-size: 0.95rem;
+        /* Slightly smaller font to fit more words */
+    }
+
+    .box p,
+    .box span {
+        font-size: 1rem;
+        /* Adjust specifically for the question and answer */
+    }
+
     .spinning-blur {
         /* Mobile GPUs struggle with blur filters during fast movement */
         filter: none !important;
@@ -355,6 +374,7 @@ body:has(.full-overlay:not([hidden])) {
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
     /* Smooth scroll for iOS */
+    padding-bottom: 100px;
 }
 
 /* To keep the content centered when it IS short enough */
@@ -457,12 +477,24 @@ body:has(.full-overlay:not([hidden])) {
     font-weight: bold;
     color: white;
     text-align: left;
+
+    /* CRITICAL FIXES: */
     word-wrap: break-word;
-    /* Forces long text to stay inside */
     overflow-wrap: break-word;
+    word-break: break-word;
+    /* Extra safety for long strings */
     height: auto;
-    min-height: 180px;
-    /* Ensures boxes look consistent */
+    /* Let it grow with text */
+    min-height: 140px;
+    /* Minimum size, but can get taller */
+    display: flex;
+    flex-direction: column;
+}
+
+.box span {
+    display: inline-block;
+    /* Helps the answer text wrap correctly */
+    word-break: break-word;
 }
 
 .box p {
