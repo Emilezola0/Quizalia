@@ -241,33 +241,46 @@ if (validateBtn) {
 const wrongBtn = document.getElementById("wrongBtn");
 if (wrongBtn) {
     wrongBtn.onclick = () => {
-        // 1. Play sound immediately
         new Audio("sounds/WrongAnswer.mp3").play().catch(() => { });
 
-        // 2. Read the current room data once
         const roomRef = ref(db, `rooms/${lobbyCode}`);
 
         onValue(roomRef, (snapshot) => {
             const data = snapshot.val();
             if (!data) return;
 
+            // 1. Calculate the new blocked list
             let blocks = data.blocked || [];
-
-            // 3. Add current winner to blocked list
             if (data.winner && !blocks.includes(data.winner)) {
                 blocks.push(data.winner);
             }
 
-            // 4. Update Firebase
-            updateRoom({
-                winner: null,
-                blocked: blocks,
-                timerActive: false,
-                showPanel: true // Keeps the GM panel open for the next player
-            });
+            // 2. Get total players in the lobby (excluding the host)
+            const totalPlayersCount = data.players ? Object.keys(data.players).length : 0;
 
-            console.log("✅ Player blocked via onValue");
-        }, { onlyOnce: true }); // This ensures the listener runs only once per click
+            // 3. Check if everyone is now blocked
+            if (blocks.length >= totalPlayersCount && totalPlayersCount > 0) {
+                // ALL PLAYERS WRONG: Full Reset
+                updateRoom({
+                    winner: null,
+                    activeCard: null,  // Hides the question for everyone
+                    blocked: [],       // Clears blocks for next round
+                    timerActive: false,
+                    "spin/status": "idle",
+                    showPanel: false   // Returns host to main GM screen
+                });
+                console.log("🚫 All players wrong. Round reset.");
+            } else {
+                // SOME PLAYERS LEFT: Return to Question Grid
+                updateRoom({
+                    winner: null,
+                    blocked: blocks,
+                    timerActive: false,
+                    showPanel: false
+                });
+                console.log("❌ Player blocked. Returning to grid for remaining players.");
+            }
+        }, { onlyOnce: true });
     };
 }
 
