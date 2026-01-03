@@ -167,19 +167,16 @@ body:has(.full-overlay:not([hidden])) {
 }
 
 .slot-machine-wrap {
-    /* Use height relative to container, not viewport */
-    height: 80%;
+    height: 80vh;
+    /* Controlled height */
     width: 95%;
     position: relative;
     overflow: hidden;
-    /* Softened the mask to prevent text from disappearing too early */
-    mask-image: linear-gradient(to bottom, transparent, black 20%, black 80%, transparent);
-    -webkit-mask-image: linear-gradient(to bottom, transparent, black 20%, black 80%, transparent);
+    /* This ensures the reel starts at the top so your JS animation math works */
+    display: block;
 
-    /* Center the contents of the wrap */
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    mask-image: linear-gradient(to bottom, transparent, black 25%, black 75%, transparent);
+    -webkit-mask-image: linear-gradient(to bottom, transparent, black 25%, black 75%, transparent);
 }
 
 /* Neon Selector Window */
@@ -207,18 +204,17 @@ body:has(.full-overlay:not([hidden])) {
 }
 
 .slot-card {
-    font-size: 8vw;
-    height: 30vh;
-    min-height: 30vh;
+    /* Match the height to the 'after' window (30% of the wrap) */
+    height: 24vh;
     display: flex;
     align-items: center;
     justify-content: center;
     font-weight: 900;
     color: white;
+    font-size: clamp(1.5rem, 8vw, 5rem);
+    /* Responsive font */
     text-transform: uppercase;
     text-align: center;
-    letter-spacing: 4px;
-    text-shadow: 0 5px 15px rgba(0, 0, 0, 0.5);
 }
 
 /* --- VFX --- */
