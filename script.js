@@ -1,8 +1,6 @@
 import { db, ref, set, update, onValue, push } from "./firebase.js";
 
-//#region Starting Variables
-
-// --- GLOBAL VARIABLES ---
+//#region 1. CONFIGURATION & GLOBAL STATE
 let lobbyCode = null;
 let playerName = null;
 let role = null;
@@ -14,7 +12,6 @@ let lastSeed = null;
 let lastWinner = null;
 let lastSelectedTheme = null;
 
-// --- BUZZER SOUND CONFIG ---
 const buzzerSounds = {
     "Default": "sounds/buzzer/BuzzClassic.mp3",
     "Alert": "sounds/buzzer/BuzzAlert.mp3",
@@ -23,10 +20,10 @@ const buzzerSounds = {
     "Heavy": "sounds/buzzer/BuzzHeavy.mp3",
     "Heavy 2": "sounds/buzzer/BuzzHeavy2.mp3",
     "High": "sounds/buzzer/BuzzHigh.mp3",
-    "Mid": "sounds/bbuzzer/BuzzMid.mp3",
     "Reverse": "sounds/buzzer/BuzzReverse.mp3",
     "Reverse 2": "sounds/buzzer/BuzzReverse2.mp3",
     "Show": "sounds/buzzer/BuzzShow.mp3",
+    "Tchiou": "sounds/buzzer/BuzzMid.mp3",
     "TingWoop": "sounds/buzzer/BuzzTingWoop.mp3",
     "TiTiTi": "sounds/buzzer/BuzzTinTinTin.mp3",
     "Tong": "sounds/buzzer/BuzzTong.mp3",
@@ -35,33 +32,18 @@ const buzzerSounds = {
 
 let selectedBuzzerKey = localStorage.getItem("userBuzzer") || "Default";
 let currentBuzzerSound = new Audio(buzzerSounds[selectedBuzzerKey]);
+currentBuzzerSound.volume = 0.4;
 
 const tickSound = new Audio("sounds/WheelSpinTick.mp3");
 tickSound.volume = 0.25;
 
-// Elements
 const homeSection = document.getElementById("home");
 const lobbySection = document.getElementById("lobby");
 const gameSection = document.getElementById("game");
-
+const timeLimitSelect = document.getElementById("timeLimitSelect");
 //#endregion
 
-//#region CSV DATA
-// --- 1. CSV DATA LOADER ---
-Papa.parse("questions.csv", {
-    download: true,
-    header: true,
-    skipEmptyLines: true,
-    complete: (results) => {
-        questionBank = results.data;
-        initSlots(0);
-        console.log("Questions Loaded:", questionBank);
-    }
-});
-
-//#endregion
-
-// --- 2. UTILS ---
+//#region 2. UTILITIES
 function showSection(id) {
     [homeSection, lobbySection, gameSection].forEach(s => s.hidden = (s.id !== id));
 }
@@ -70,13 +52,46 @@ function generateLobbyCode() {
     return Math.random().toString(36).substring(2, 6).toUpperCase();
 }
 
-//#region LOBBY MANAGEMENT
+function updateRoom(data) {
+    if (!lobbyCode) return;
+    return update(ref(db, `rooms/${lobbyCode}`), data);
+}
 
-// --- 3. LOBBY MANAGEMENT ---
+function generateQRCode(code) {
+    const url = window.location.origin + window.location.pathname + "?room=" + code;
+    const qrElem = document.getElementById("qrCode");
+    if (qrElem && typeof QRious !== "undefined") {
+        new QRious({ element: qrElem, value: url, size: 150 });
+    }
+}
+
+// Helper to handle negative modulo (index wrap-around)
+function getTheme(index) {
+    const len = questionBank.length;
+    if (len === 0) return { Theme: "Loading..." };
+    return questionBank[((index % len) + len) % len];
+}
+//#endregion
+
+//#region 3. DATA LOADING
+Papa.parse("questions.csv", {
+    download: true,
+    header: true,
+    skipEmptyLines: true,
+    complete: (results) => {
+        questionBank = results.data;
+        initSlots(0);
+        console.log("✅ Questions Loaded");
+    }
+});
+//#endregion
+
+//#region 4. LOBBY & JOIN
 document.getElementById("createLobbyBtn").addEventListener("click", () => {
-    playerName = document.getElementById("hostName").value || "Host";
+    playerName = document.getElementById("hostName").value.trim() || "Host";
     lobbyCode = generateLobbyCode();
     role = "host";
+
     set(ref(db, 'rooms/' + lobbyCode), {
         host: playerName,
         status: "waiting",
@@ -84,6 +99,7 @@ document.getElementById("createLobbyBtn").addEventListener("click", () => {
         activeCard: null,
         blocked: [],
         timeLimit: 10,
+        timerActive: false,
         spin: { status: "idle", targetIndex: 0, seed: 0 }
     }).then(() => {
         document.getElementById("lobbyCode").textContent = lobbyCode;
@@ -95,206 +111,73 @@ document.getElementById("createLobbyBtn").addEventListener("click", () => {
 });
 
 document.getElementById("joinLobbyBtn").addEventListener("click", () => {
-    playerName = document.getElementById("playerName").value || "Player";
-    lobbyCode = document.getElementById("lobbyCodeInput").value.toUpperCase();
+    let inputName = document.getElementById("playerName").value.trim() || "Player";
+    const inputCode = document.getElementById("lobbyCodeInput").value.toUpperCase();
+
+    if (!inputCode) return alert("Enter a code!");
+
+    lobbyCode = inputCode;
     role = "player";
-    const playerListRef = ref(db, `rooms/${lobbyCode}/players`);
-    push(playerListRef, { name: playerName }).then(() => {
-        document.getElementById("lobbyCode").textContent = lobbyCode;
-        setupGameListeners();
-        showSection("lobby");
-        updateUIByRole();
-    }).catch(() => alert("Lobby not found!"));
+
+    const roomRef = ref(db, `rooms/${lobbyCode}`);
+
+    // 1. Get current room data once to check players
+    onValue(roomRef, (snapshot) => {
+        if (!snapshot.exists()) {
+            alert("Lobby not found!");
+            return;
+        }
+
+        const data = snapshot.val();
+        const playersObj = data.players || {};
+        const existingNames = Object.values(playersObj).map(p => p.name);
+
+        // 2. Logic to handle duplicate names
+        let finalName = inputName;
+        let counter = 2;
+
+        while (existingNames.includes(finalName)) {
+            finalName = `${inputName} ${counter}`;
+            counter++;
+        }
+
+        playerName = finalName; // Set the global playerName to the unique one
+
+        // 3. Push to Firebase
+        push(ref(db, `rooms/${lobbyCode}/players`), { name: playerName }).then(() => {
+            document.getElementById("lobbyCode").textContent = lobbyCode;
+            setupGameListeners();
+            showSection("lobby");
+            updateUIByRole();
+            console.log(`✅ Joined as: ${playerName}`);
+        });
+    }, { onlyOnce: true });
 });
 
 document.getElementById("startGameBtn").addEventListener("click", () => {
-    update(ref(db, 'rooms/' + lobbyCode), { status: "playing" });
+    updateRoom({ status: "playing" });
 });
-
 //#endregion
 
-// 2. Add the Change function
-function changeBuzzerSound(key) {
-    if (buzzerSounds[key]) {
-        selectedBuzzerKey = key;
-        localStorage.setItem("userBuzzer", key);
-
-        // Don't create 'new Audio', just update the source
-        currentBuzzerSound.src = buzzerSounds[key];
-        currentBuzzerSound.volume = 0.3;
-
-        // Load and play a preview
-        currentBuzzerSound.load();
-        currentBuzzerSound.play().catch(e => console.log("Preview blocked:", e));
-    }
-}
-// Example: Populate a select element if you have one with id "buzzerSelect"
-const buzzerSelect = document.getElementById("buzzerSelect");
-if (buzzerSelect) {
-    Object.keys(buzzerSounds).forEach(key => {
-        const opt = document.createElement("option");
-        opt.value = key;
-        opt.textContent = key;
-        if (key === selectedBuzzerKey) opt.selected = true;
-        buzzerSelect.appendChild(opt);
-    });
-    buzzerSelect.onchange = (e) => changeBuzzerSound(e.target.value);
-}
-
-// 3. Add the Initialization function
-function initBuzzerMenus() {
-    const menus = [document.getElementById("buzzerSelect"), document.getElementById("buzzerSelectPlayer")];
-    menus.forEach(menu => {
-        if (!menu) return;
-        menu.innerHTML = "";
-        Object.keys(buzzerSounds).forEach(key => {
-            const opt = document.createElement("option");
-            opt.value = key;
-            opt.textContent = key;
-            if (key === selectedBuzzerKey) opt.selected = true;
-            menu.appendChild(opt);
-        });
-        menu.onchange = (e) => {
-            changeBuzzerSound(e.target.value);
-            // Sync the other menu if it exists
-            menus.forEach(m => { if (m) m.value = e.target.value; });
-        };
-    });
-}
-
-//#region THEME LOGIC & SPIN WHEEL
-
-// --- 4. THEME LOGIC & SPIN WHEEL (FLUID VERSION) ---
-
-// 1. Initialise les slots (statique)
+//#region 5. THEME & SPIN ACTIONS
 function initSlots(centerIndex = 0) {
     if (questionBank.length === 0) return;
     const slots = document.querySelectorAll(".slot-card");
-
-    // On s'assure que l'affichage statique est identique à la fin de l'animation
+    if (slots.length < 5) return;
     slots[0].innerText = getTheme(centerIndex - 2).Theme;
     slots[1].innerText = getTheme(centerIndex - 1).Theme;
     slots[2].innerText = getTheme(centerIndex).Theme;
     slots[3].innerText = getTheme(centerIndex + 1).Theme;
     slots[4].innerText = getTheme(centerIndex + 2).Theme;
-
     currentIndex = centerIndex;
 }
 
-function getTheme(index) {
-    const len = questionBank.length;
-    return questionBank[((index % len) + len) % len];
-}
-
-function startSyncedSpin() {
+document.getElementById("randomThemeBtn").onclick = () => {
+    if (questionBank.length === 0 || isSpinningLocally) return;
     const target = Math.floor(Math.random() * questionBank.length);
-    update(ref(db, 'rooms/' + lobbyCode + '/spin'), {
-        targetIndex: target,
-        seed: Date.now(),
-        status: "spinning"
+    updateRoom({
+        spin: { status: "spinning", targetIndex: target, seed: Date.now() }
     });
-}
-
-function directSelectTheme(themeObj) {
-    if (!themeObj) return;
-    update(ref(db, 'rooms/' + lobbyCode), {
-        activeCard: themeObj,
-        winner: null,
-        blocked: [],
-        "spin/status": "idle"
-    });
-}
-
-// 2. La fonction de spin fluide (Remplace entièrement l'ancienne)
-async function spinTheWheel(targetThemeIndex) {
-    if (isSpinningLocally) return;
-    isSpinningLocally = true;
-
-    const overlay = document.getElementById("slotMachineOverlay");
-    const reel = document.getElementById("slotReel");
-    overlay.hidden = false;
-
-    const totalSteps = 40;
-    const spinDuration = 6100;
-    const cardHeight = 30;
-
-    reel.innerHTML = "";
-
-    for (let i = 0; i <= totalSteps + 4; i++) {
-        const card = document.createElement("div");
-        card.className = "slot-card";
-        const themeIndex = (targetThemeIndex - totalSteps - 2) + i;
-        card.innerText = getTheme(themeIndex).Theme;
-        reel.appendChild(card);
-    }
-
-    if (typeof tickSound !== 'undefined') {
-        tickSound.currentTime = 0;
-        tickSound.play().catch(() => { });
-    }
-
-    reel.style.transition = "none";
-    reel.style.transform = "translateY(0)";
-    reel.offsetHeight;
-
-    reel.style.transition = `transform ${spinDuration}ms cubic-bezier(0.15, 0, 0.15, 1)`;
-    reel.classList.add("spinning-blur");
-    reel.style.transform = `translateY(-${totalSteps * cardHeight}vh)`;
-
-    setTimeout(() => {
-        reel.style.transition = "none";
-        reel.classList.remove("spinning-blur");
-
-        initSlots(targetThemeIndex);
-
-        // FIX: Use getTheme helper to handle index 0 -> Last Item wrap-around
-        const finalWinnerTheme = getTheme(targetThemeIndex - 1);
-        lastSelectedTheme = finalWinnerTheme;
-
-        overlay.classList.add("winner-glow");
-
-        setTimeout(() => {
-            overlay.hidden = true;
-            overlay.classList.remove("winner-glow");
-            isSpinningLocally = false;
-
-            if (role === "host") {
-                // FIX: Ensure currentIndex is synced with the winning theme index
-                // We use the same math as finalWinnerTheme to keep it consistent
-                currentIndex = ((targetThemeIndex - 1) % questionBank.length + questionBank.length) % questionBank.length;
-
-                update(ref(db, 'rooms/' + lobbyCode), {
-                    activeCard: finalWinnerTheme,
-                    winner: null,
-                    blocked: [],
-                    "spin/status": "done"
-                });
-            }
-        }, 2000);
-    }, spinDuration);
-}
-
-//#endregion
-
-//#region BUZZER & ACTIONS (BUTTONS)
-
-// --- 5. BUZZER & ACTION ---
-document.getElementById("randomThemeBtn").onclick = () => startSyncedSpin();
-
-document.getElementById("keepThemeBtn").onclick = () => {
-    if (!lastSelectedTheme) {
-        console.error("No theme to keep yet!");
-        return;
-    }
-
-    // 1. Update local UI
-    const themeIndex = questionBank.findIndex(q => q.Theme === lastSelectedTheme.Theme);
-    if (themeIndex !== -1) initSlots(themeIndex);
-
-    // 2. Update Firebase
-    directSelectTheme(lastSelectedTheme);
-
-    console.log("Keeping Theme:", lastSelectedTheme.Theme);
 };
 
 document.getElementById("selectThemeBtn").onclick = () => {
@@ -306,8 +189,8 @@ document.getElementById("selectThemeBtn").onclick = () => {
         btn.className = "btn-gm gray";
         btn.onclick = () => {
             initSlots(idx);
-            directSelectTheme(q);
             lastSelectedTheme = q;
+            updateRoom({ activeCard: q, winner: null, blocked: [], "spin/status": "idle" });
             document.getElementById("themeListModal").hidden = true;
         };
         container.appendChild(btn);
@@ -315,174 +198,234 @@ document.getElementById("selectThemeBtn").onclick = () => {
     document.getElementById("themeListModal").hidden = false;
 };
 
+document.getElementById("keepThemeBtn").onclick = () => {
+    if (lastSelectedTheme) updateRoom({ activeCard: lastSelectedTheme, winner: null, blocked: [], "spin/status": "idle" });
+};
+
 document.getElementById("manualModeBtn").onclick = () => {
-    directSelectTheme({ Theme: "MANUAL MODE", E1: "---", E2: "---", M1: "---", M2: "---", H1: "---", H2: "---" });
+    updateRoom({ activeCard: { Theme: "MANUAL MODE", E1: "---", E2: "---", M1: "---", M2: "---", H1: "---", H2: "---" } });
 };
-
-document.getElementById("buzzBtn").onclick = () => {
-    currentBuzzerSound.currentTime = 0;
-    currentBuzzerSound.play().catch(e => console.log("Audio blocked"));
-
-    update(ref(db, 'rooms/' + lobbyCode), {
-        winner: playerName,
-        winnerSound: selectedBuzzerKey, // Add this line
-        timerActive: true
-    });
-};
-
-document.getElementById("validateBtn").onclick = () => {
-    const validateSound = new Audio("sounds/CorrectAnswer.mp3")
-    validateSound.currentTime = 0
-    validateSound.play()
-    update(ref(db, 'rooms/' + lobbyCode), {
-        winner: null,
-        activeCard: null,
-        blocked: [],
-        timerActive: false,
-        "spin/status": "idle"
-    });
-};
-
-document.getElementById("wrongBtn").onclick = () => {
-    const wrongAnswerSound = new Audio("sounds/WrongAnswer.mp3")
-    wrongAnswerSound.currentTime = 0
-    wrongAnswerSound.play()
-    const roomRef = ref(db, 'rooms/' + lobbyCode);
-    onValue(roomRef, (snapshot) => {
-        const data = snapshot.val();
-        let currentBlocks = data.blocked || [];
-        if (data.winner && !currentBlocks.includes(data.winner)) currentBlocks.push(data.winner);
-        update(roomRef, { winner: null, blocked: currentBlocks, timerActive: false });
-    }, { onlyOnce: true });
-};
-
-document.getElementById("resetRoundBtn").onclick = () => {
-    update(ref(db, 'rooms/' + lobbyCode), {
-        activeCard: null,
-        winner: null,
-        blocked: [],
-        timerActive: false,
-        "spin/status": "idle"
-    });
-};
-
-document.getElementById("forceStopBtn").onclick = () => document.getElementById("resetRoundBtn").click();
-
 //#endregion
 
-//#region LISTENERS
+//#region 6. GAME BUTTONS (LATENCY OPTIMIZED)
+const buzzBtn = document.getElementById("buzzBtn");
+if (buzzBtn) {
+    buzzBtn.onclick = () => {
+        // Immediate local feedback
+        currentBuzzerSound.currentTime = 0;
+        currentBuzzerSound.play().catch(() => { });
 
-// --- 6. LISTENERS ---
+        updateRoom({
+            winner: playerName,
+            winnerSound: selectedBuzzerKey,
+            timerActive: true
+        });
+    };
+}
+
+const validateBtn = document.getElementById("validateBtn");
+if (validateBtn) {
+    validateBtn.onclick = () => {
+        new Audio("sounds/CorrectAnswer.mp3").play().catch(() => { });
+        updateRoom({
+            winner: null,
+            activeCard: null,
+            blocked: [],
+            timerActive: false,
+            "spin/status": "idle",
+            showPanel: false
+        });
+    };
+}
+
+const wrongBtn = document.getElementById("wrongBtn");
+if (wrongBtn) {
+    wrongBtn.onclick = () => {
+        // 1. Play sound immediately
+        new Audio("sounds/WrongAnswer.mp3").play().catch(() => { });
+
+        // 2. Read the current room data once
+        const roomRef = ref(db, `rooms/${lobbyCode}`);
+
+        onValue(roomRef, (snapshot) => {
+            const data = snapshot.val();
+            if (!data) return;
+
+            let blocks = data.blocked || [];
+
+            // 3. Add current winner to blocked list
+            if (data.winner && !blocks.includes(data.winner)) {
+                blocks.push(data.winner);
+            }
+
+            // 4. Update Firebase
+            updateRoom({
+                winner: null,
+                blocked: blocks,
+                timerActive: false,
+                showPanel: true // Keeps the GM panel open for the next player
+            });
+
+            console.log("✅ Player blocked via onValue");
+        }, { onlyOnce: true }); // This ensures the listener runs only once per click
+    };
+}
+
+const stopBtn = document.getElementById("forceStopBtn") || document.getElementById("resetRoundBtn");
+if (stopBtn) {
+    stopBtn.onclick = () => {
+        updateRoom({
+            winner: null,
+            activeCard: null,  // This hides the question card for everyone
+            blocked: [],       // This unblocks all players
+            timerActive: false,
+            "spin/status": "idle",
+            showPanel: false   // This hides the host's control panel
+        });
+    };
+}
+
+const resetBtn = document.getElementById("resetRoundBtn");
+if (resetBtn) {
+    resetBtn.onclick = () => {
+        updateRoom({
+            winner: null,
+            activeCard: null,  // This hides the question card for everyone
+            blocked: [],       // This unblocks all players
+            timerActive: false,
+            "spin/status": "idle",
+            showPanel: false   // This hides the host's control panel
+        });
+    };
+}
+//#endregion
+
+//#region 7. SYNC LISTENERS
 function setupGameListeners() {
     onValue(ref(db, 'rooms/' + lobbyCode), (snapshot) => {
         const data = snapshot.val();
         if (!data) return;
 
-        if (data.timeLimit) {
-            syncTimerSelect(data.timeLimit);
-        }
-
-        // If a new winner is detected, play the sound
-        if (data.winner && data.winner !== lastWinner) {
-            if (data.winnerSound && buzzerSounds[data.winnerSound]) {
-                // Only update if it's actually different to prevent restart loops
-                if (currentBuzzerSound.src !== window.location.origin + "/" + buzzerSounds[data.winnerSound]) {
-                    currentBuzzerSound.src = buzzerSounds[data.winnerSound];
-                    currentBuzzerSound.load(); // Force the browser to buffer the new file
-                }
-            }
-
-            currentBuzzerSound.currentTime = 0;
-            // We use a small timeout to ensure the 'src' change is registered
-            setTimeout(() => {
-                currentBuzzerSound.play().catch(e => console.log("Playback blocked:", e));
-            }, 50);
-        }
-        // ------------------------
-
-        if (data.spin && data.spin.status === "spinning" && data.spin.seed !== lastSeed) {
-            lastSeed = data.spin.seed;
-            spinTheWheel(data.spin.targetIndex);
-        }
-
+        // Players List Sync
         if (data.players) {
             document.getElementById("playersList").innerHTML = Object.values(data.players)
                 .map(p => `<li>👤 ${p.name}</li>`).join("");
         }
 
+        // Sound & Winner Sync
+        if (data.winner && data.winner !== lastWinner) {
+            if (data.winnerSound && buzzerSounds[data.winnerSound]) {
+                // Only change source if different to avoid reloading sound mid-play
+                const newSrc = window.location.origin + "/" + buzzerSounds[data.winnerSound];
+                if (!currentBuzzerSound.src.includes(buzzerSounds[data.winnerSound])) {
+                    currentBuzzerSound.src = buzzerSounds[data.winnerSound];
+                }
+            }
+            currentBuzzerSound.currentTime = 0;
+            setTimeout(() => currentBuzzerSound.play().catch(() => { }), 50);
+        }
+        lastWinner = data.winner;
+
+        // Wheel Sync
+        if (data.spin?.status === "spinning" && data.spin.seed !== lastSeed) {
+            lastSeed = data.spin.seed;
+            spinTheWheel(data.spin.targetIndex);
+        }
+
+        // Section/Role Sync
         if (data.status === "playing" && gameSection.hidden) {
             showSection("game");
             updateUIByRole();
         }
 
-        const isHost = (role === "host");
-        if (isHost) {
-            if (data.activeCard) {
-                const c = data.activeCard;
-                ["E1", "E2", "M1", "M2", "H1", "H2"].forEach(k => {
-                    if (document.getElementById(`tableAns${k}`)) document.getElementById(`tableAns${k}`).textContent = c[`${k}_Ans`] || "---";
-                    if (document.getElementById(`q${k}`)) document.getElementById(`q${k}`).textContent = c[k] || "---";
-                    if (document.getElementById(`cardAns${k}`)) document.getElementById(`cardAns${k}`).textContent = c[`${k}_Ans`] || "---";
-                });
+        role === "host" ? renderHostUI(data) : renderPlayerUI(data);
 
-                if (data.winner) {
-                    document.getElementById("fullScreenCard").hidden = true;
-                    document.getElementById("gmActionPanel").hidden = false;
-                    document.getElementById("activeWinnerName").textContent = "BUZZ: " + data.winner;
-                } else {
-                    document.getElementById("fullScreenCard").hidden = false;
-                    document.getElementById("gmActionPanel").hidden = true;
-                }
-            } else {
-                document.getElementById("fullScreenCard").hidden = true;
-                document.getElementById("gmActionPanel").hidden = true;
-            }
-
-            // HOST PROTECTION: Ensure host background stays normal
-            document.body.classList.remove('buzzer-winner', 'buzzer-locked');
-
+        // Timer Sync
+        if (data.timerActive && data.winner) {
+            startLocalTimer(data.timeLimit || 10);
         } else {
-            // --- PLAYER BACKGROUND LOGIC ---
-            const body = document.body;
-
-            if (data.winner) {
-                if (data.winner === playerName) {
-                    // I am the winner!
-                    body.classList.add('buzzer-winner');
-                    body.classList.remove('buzzer-locked');
-                } else {
-                    // Someone else buzzed!
-                    body.classList.add('buzzer-locked');
-                    body.classList.remove('buzzer-winner');
-                }
-            } else {
-                // No one has buzzed, reset to normal
-                body.classList.remove('buzzer-winner', 'buzzer-locked');
-            }
-
-            const isBlocked = (data.blocked || []).includes(playerName);
-            const bBtn = document.getElementById("buzzBtn");
-
-            if (data.activeCard) {
-                document.getElementById("playerThemeDisplay").textContent = data.activeCard.Theme;
-            } else {
-                document.getElementById("playerThemeDisplay").textContent = "Wait for Host...";
-            }
-
-            bBtn.disabled = !data.activeCard || data.winner || isBlocked;
-            bBtn.textContent = isBlocked ? "BLOCKED" : "BUZZ !";
-
-            if (data.timerActive && data.winner) {
-                startLocalTimer(data.timeLimit || 10);
-            } else {
-                clearInterval(countdownInterval);
-                document.getElementById("timerContainer").hidden = true;
-            }
+            clearInterval(countdownInterval);
+            if (document.getElementById("timerContainer")) document.getElementById("timerContainer").hidden = true;
         }
+
+        if (data.timeLimit && timeLimitSelect) timeLimitSelect.value = data.timeLimit;
     });
 }
 
-//#endregion
+function renderHostUI(data) {
+    if (data.activeCard) {
+        const c = data.activeCard;
+        const levels = ["E1", "E2", "M1", "M2", "H1", "H2"];
+
+        levels.forEach(k => {
+            const ansElem = document.getElementById(`tableAns${k}`);
+            const qstElem = document.getElementById(`q${k}`);
+            const cardAnsElem = document.getElementById(`cardAns${k}`);
+
+            if (qstElem) qstElem.textContent = c[k] || "---";
+            const answerText = c[`${k}_Ans`] || c[`${k}Ans`] || c[`${k}_ans`] || "---";
+
+            if (ansElem) ansElem.textContent = answerText;
+            if (cardAnsElem) cardAnsElem.textContent = answerText;
+        });
+
+        // The logic for showing the panel
+        // If there is a winner OR the host manually stopped the round
+        const shouldShowPanel = !!data.winner || data.showPanel === true;
+
+        document.getElementById("fullScreenCard").hidden = shouldShowPanel;
+        document.getElementById("gmActionPanel").hidden = !shouldShowPanel;
+
+        if (data.winner) {
+            document.getElementById("activeWinnerName").textContent = "BUZZ: " + data.winner;
+        } else {
+            document.getElementById("activeWinnerName").textContent = "QUESTION PHASE";
+        }
+    } else {
+        document.getElementById("fullScreenCard").hidden = true;
+        document.getElementById("gmActionPanel").hidden = true;
+    }
+    // Host never gets red/green backgrounds
+    document.body.classList.remove('buzzer-winner', 'buzzer-locked');
+}
+
+function renderPlayerUI(data) {
+    const body = document.body;
+    const isBlocked = (data.blocked || []).includes(playerName);
+
+    if (!data.winner) {
+        body.classList.remove('buzzer-winner', 'buzzer-locked');
+    }
+
+    // BACKGROUND LOGIC
+    if (data.winner) {
+        if (data.winner === playerName) {
+            body.classList.add('buzzer-winner');
+            body.classList.remove('buzzer-locked');
+        } else {
+            body.classList.add('buzzer-locked');
+            body.classList.remove('buzzer-winner');
+        }
+    } else {
+        // No winner? Reset background so players can see clearly
+        body.classList.remove('buzzer-winner', 'buzzer-locked');
+    }
+
+    // BUTTON LOGIC
+    const bBtn = document.getElementById("buzzBtn");
+    if (bBtn) {
+        // The buzzer is enabled if:
+        // 1. There is an active card
+        // 2. There is NO current winner
+        // 3. The player isn't in the "blocked" (wrong answer) list
+        const canBuzz = data.activeCard && !data.winner && !isBlocked;
+
+        bBtn.disabled = !canBuzz;
+        bBtn.textContent = isBlocked ? "BLOCKED" : (data.winner ? "WAIT..." : "BUZZ !");
+    }
+
+    document.getElementById("playerThemeDisplay").textContent = data.activeCard ? data.activeCard.Theme : "Wait for Host...";
+}
 
 function updateUIByRole() {
     const isHost = (role === "host");
@@ -490,88 +433,97 @@ function updateUIByRole() {
     document.getElementById("hostView").hidden = !isHost;
     document.getElementById("playerView").hidden = isHost;
 }
+//#endregion
+
+//#region 8. ANIMATION & TIMERS
+async function spinTheWheel(targetThemeIndex) {
+    if (isSpinningLocally) return;
+    isSpinningLocally = true;
+    const overlay = document.getElementById("slotMachineOverlay");
+    const reel = document.getElementById("slotReel");
+    if (!overlay || !reel) return;
+
+    overlay.hidden = false;
+    const totalSteps = 40, spinDuration = 6100, cardHeight = 30;
+    reel.innerHTML = "";
+    for (let i = 0; i <= totalSteps + 4; i++) {
+        const card = document.createElement("div");
+        card.className = "slot-card";
+        card.innerText = getTheme((targetThemeIndex - totalSteps - 2) + i).Theme;
+        reel.appendChild(card);
+    }
+
+    tickSound.currentTime = 0;
+    tickSound.play().catch(() => { });
+
+    reel.style.transition = "none";
+    reel.style.transform = "translateY(0)";
+    reel.offsetHeight;
+    reel.style.transition = `transform ${spinDuration}ms cubic-bezier(0.15, 0, 0.15, 1)`;
+    reel.classList.add("spinning-blur");
+    reel.style.transform = `translateY(-${totalSteps * cardHeight}vh)`;
+
+    setTimeout(() => {
+        reel.style.transition = "none";
+        reel.classList.remove("spinning-blur");
+        initSlots(targetThemeIndex);
+        overlay.classList.add("winner-glow");
+
+        setTimeout(() => {
+            overlay.hidden = true;
+            overlay.classList.remove("winner-glow");
+            isSpinningLocally = false;
+            if (role === "host") {
+                const winTheme = getTheme(targetThemeIndex - 1);
+                lastSelectedTheme = winTheme;
+                updateRoom({ activeCard: winTheme, winner: null, blocked: [], "spin/status": "done" });
+            }
+        }, 2000);
+    }, spinDuration);
+}
 
 function startLocalTimer(seconds) {
     clearInterval(countdownInterval);
     const progressBar = document.getElementById("progressBar");
     const container = document.getElementById("timerContainer");
+    if (!progressBar || !container) return;
 
     container.hidden = false;
-    progressBar.classList.remove("timer-low"); // Reset animation
-
-    let totalMs = seconds * 1000;
-    let timeLeftMs = totalMs;
-
+    progressBar.classList.remove("timer-low");
+    let totalMs = seconds * 1000, timeLeftMs = totalMs;
     countdownInterval = setInterval(() => {
-        timeLeftMs -= 100; // Update every 100ms for smoothness
+        timeLeftMs -= 100;
         let percentage = (timeLeftMs / totalMs) * 100;
-
         progressBar.style.width = percentage + "%";
-
-        // Add "Danger" animation when less than 3 seconds left
-        if (percentage < 30) {
-            progressBar.classList.add("timer-low");
-        }
-
+        if (percentage < 30) progressBar.classList.add("timer-low");
         if (timeLeftMs <= 0) {
             clearInterval(countdownInterval);
-            progressBar.style.width = "0%";
             if (role === "host") document.getElementById("wrongBtn").click();
         }
     }, 100);
 }
 
-function generateQRCode(code) {
-    const url = window.location.origin + window.location.pathname + "?room=" + code;
-    new QRious({ element: document.getElementById("qrCode"), value: url, size: 150 });
-}
-
-// Function to fill all buzzer selects in the HTML
 function populateBuzzerMenus() {
     const selects = [document.getElementById("buzzerSelect"), document.getElementById("buzzerSelectPlayer")];
-
     selects.forEach(select => {
         if (!select) return;
-        select.innerHTML = ""; // Clear existing
-        Object.keys(buzzerSounds).forEach(key => {
-            const opt = document.createElement("option");
-            opt.value = key;
-            opt.textContent = key;
-            if (key === selectedBuzzerKey) opt.selected = true;
-            select.appendChild(opt);
-        });
-
+        select.innerHTML = Object.keys(buzzerSounds).map(k => `<option value="${k}" ${k === selectedBuzzerKey ? 'selected' : ''}>${k}</option>`).join("");
         select.onchange = (e) => {
-            changeBuzzerSound(e.target.value);
-            // Sync both dropdowns if both exist
+            selectedBuzzerKey = e.target.value;
+            localStorage.setItem("userBuzzer", selectedBuzzerKey);
+            currentBuzzerSound.src = buzzerSounds[selectedBuzzerKey];
+            currentBuzzerSound.load();
+            currentBuzzerSound.play().catch(() => { });
             selects.forEach(s => { if (s) s.value = e.target.value; });
         };
     });
 }
 
-//#region Timer
-
-const timeLimitSelect = document.getElementById("timeLimitSelect");
-
 if (timeLimitSelect) {
     timeLimitSelect.onchange = (e) => {
-        const newLimit = parseInt(e.target.value);
-        if (lobbyCode && role === "host") {
-            update(ref(db, 'rooms/' + lobbyCode), {
-                timeLimit: newLimit
-            });
-            console.log("Timer updated to:", newLimit);
-        }
+        if (role === "host") updateRoom({ timeLimit: parseInt(e.target.value) });
     };
 }
 
-function syncTimerSelect(value) {
-    if (timeLimitSelect) {
-        timeLimitSelect.value = value;
-    }
-}
-
-//#endregion
-
-// Call this ONCE at the end of the script
 populateBuzzerMenus();
+//#endregion
