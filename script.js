@@ -405,9 +405,17 @@ function renderHostUI(data) {
 function renderPlayerUI(data) {
     const body = document.body;
     const isBlocked = (data.blocked || []).includes(playerName);
+    const whoBuzzedElem = document.getElementById("whoBuzzed");
+    const topThemeElem = document.getElementById("playerThemeDisplayTop");
+
+    // Update the Theme Frame
+    if (topThemeElem) {
+        topThemeElem.textContent = data.activeCard ? data.activeCard.Theme : "WAITING...";
+    }
 
     if (!data.winner) {
         body.classList.remove('buzzer-winner', 'buzzer-locked');
+        if (whoBuzzedElem) whoBuzzedElem.textContent = ""; // Clear name if no winner
     }
 
     // BACKGROUND LOGIC
@@ -415,9 +423,11 @@ function renderPlayerUI(data) {
         if (data.winner === playerName) {
             body.classList.add('buzzer-winner');
             body.classList.remove('buzzer-locked');
+            if (whoBuzzedElem) whoBuzzedElem.textContent = "YOU ARE ANSWERING!";
         } else {
             body.classList.add('buzzer-locked');
             body.classList.remove('buzzer-winner');
+            if (whoBuzzedElem) whoBuzzedElem.textContent = `${data.winner.toUpperCase()} IS ANSWERING...`;
         }
     } else {
         // No winner? Reset background so players can see clearly

@@ -701,6 +701,17 @@ body:has(.full-overlay:not([hidden])) {
 
 /* --- BUZZER STATE OVERRIDES --- */
 
+.buzzer-announcement {
+    font-size: 1.5rem;
+    font-weight: bold;
+    text-align: center;
+    margin-bottom: 20px;
+    height: 2rem;
+    /* Keeps layout stable when text is empty */
+    color: white;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+}
+
 /* The 'locked-out' state for everyone else */
 body.buzzer-locked {
     background: radial-gradient(circle, #7f1d1d, #450a0a) !important;
@@ -943,4 +954,38 @@ body.loser-red {
 .neon-select:hover {
     border-color: #8be9fd;
     box-shadow: 0 0 15px rgba(139, 233, 253, 0.5);
+}
+
+/* THEME FRAME */
+.theme-frame {
+    background: rgba(255, 255, 255, 0.1);
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-radius: 12px;
+    padding: 10px;
+    margin: 10px auto;
+    width: 90%;
+    text-align: center;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+}
+
+.theme-label {
+    font-size: 0.7rem;
+    color: #aaa;
+    display: block;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+}
+
+#playerThemeDisplayTop {
+    font-size: 1.6rem;
+    font-weight: 800;
+    color: #fff;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+}
+
+.buzzer-announcement {
+    height: 3rem;
+    margin-top: 15px;
+    font-size: 1.4rem;
+    font-weight: bold;
 }
