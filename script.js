@@ -1,137 +1,453 @@
 import { db, ref, set, update, onValue, push } from "./firebase.js";
 
+//#region Starting Variables
+
+// --- GLOBAL VARIABLES ---
 let lobbyCode = null;
 let playerName = null;
 let role = null;
 let countdownInterval = null;
+let questionBank = [];
+let currentIndex = 0;
+let isSpinningLocally = false;
+let lastSeed = null;
+let lastWinner = null;
+
+// --- BUZZER SOUND CONFIG ---
+const buzzerSounds = {
+    "Default": "sounds/buzzer/BuzzClassic.mp3",
+    "Alert": "sounds/buzzer/BuzzAlert.mp3",
+    "Dong": "sounds/buzzer/BuzzDong.mp3",
+    "Hard": "sounds/buzzer/BuzzHard.mp3",
+    "Heavy": "sounds/buzzer/BuzzHeavy.mp3",
+    "Heavy 2": "sounds/buzzer/BuzzHeavy2.mp3",
+    "High": "sounds/buzzer/BuzzHigh.mp3",
+    "Mid": "sounds/bbuzzer/BuzzMid.mp3",
+    "Reverse": "sounds/buzzer/BuzzReverse.mp3",
+    "Reverse 2": "sounds/buzzer/BuzzReverse2.mp3",
+    "Show": "sounds/buzzer/BuzzShow.mp3",
+    "TingWoop": "sounds/buzzer/BuzzTingWoop.mp3",
+    "TiTiTi": "sounds/buzzer/BuzzTinTinTin.mp3",
+    "Tong": "sounds/buzzer/BuzzTong.mp3",
+    "Weird": "sounds/buzzer/BuzzWeird.mp3"
+};
+
+let selectedBuzzerKey = localStorage.getItem("userBuzzer") || "Default";
+let currentBuzzerSound = new Audio(buzzerSounds[selectedBuzzerKey]);
+
+const tickSound = new Audio("sounds/WheelSpinTick.mp3");
+tickSound.volume = 0.25;
 
 // Elements
 const homeSection = document.getElementById("home");
 const lobbySection = document.getElementById("lobby");
 const gameSection = document.getElementById("game");
-const buzzSound = document.getElementById("buzzSound");
-const resetSound = document.getElementById("resetSound");
 
-function showSection(section) {
-    [homeSection, lobbySection, gameSection].forEach(s => s.hidden = true);
-    section.hidden = false;
+//#endregion
+
+//#region CSV DATA
+// --- 1. CSV DATA LOADER ---
+Papa.parse("questions.csv", {
+    download: true,
+    header: true,
+    skipEmptyLines: true,
+    complete: (results) => {
+        questionBank = results.data;
+        initSlots(0);
+        console.log("Questions Loaded:", questionBank);
+    }
+});
+
+//#endregion
+
+// --- 2. UTILS ---
+function showSection(id) {
+    [homeSection, lobbySection, gameSection].forEach(s => s.hidden = (s.id !== id));
 }
 
 function generateLobbyCode() {
     return Math.random().toString(36).substring(2, 6).toUpperCase();
 }
 
-// --- CREATE LOBBY ---
+//#region LOBBY MANAGEMENT
+
+// --- 3. LOBBY MANAGEMENT ---
 document.getElementById("createLobbyBtn").addEventListener("click", () => {
-    playerName = document.getElementById("hostName").value || "Hôte";
+    playerName = document.getElementById("hostName").value || "Host";
     lobbyCode = generateLobbyCode();
     role = "host";
-
     set(ref(db, 'rooms/' + lobbyCode), {
         host: playerName,
         status: "waiting",
         winner: null,
-        buzzerLocked: true,
-        blocked: []
+        activeCard: null,
+        blocked: [],
+        timeLimit: 10,
+        spin: { status: "idle", targetIndex: 0, seed: 0 }
     }).then(() => {
         document.getElementById("lobbyCode").textContent = lobbyCode;
         setupGameListeners();
-        showSection(lobbySection);
+        showSection("lobby");
         updateUIByRole();
         generateQRCode(lobbyCode);
     });
 });
 
-// --- JOIN LOBBY ---
 document.getElementById("joinLobbyBtn").addEventListener("click", () => {
-    playerName = document.getElementById("playerName").value || "Joueur";
+    playerName = document.getElementById("playerName").value || "Player";
     lobbyCode = document.getElementById("lobbyCodeInput").value.toUpperCase();
     role = "player";
-
     const playerListRef = ref(db, `rooms/${lobbyCode}/players`);
-
     push(playerListRef, { name: playerName }).then(() => {
         document.getElementById("lobbyCode").textContent = lobbyCode;
         setupGameListeners();
-        showSection(lobbySection);
+        showSection("lobby");
         updateUIByRole();
-    }).catch((error) => {
-        alert("Code de lobby invalide !");
-    });
+    }).catch(() => alert("Lobby not found!"));
 });
 
-// --- GM CONTROLS ---
 document.getElementById("startGameBtn").addEventListener("click", () => {
-    update(ref(db, 'rooms/' + lobbyCode), {
-        status: "playing",
-        buzzerLocked: false
-    });
+    update(ref(db, 'rooms/' + lobbyCode), { status: "playing" });
 });
 
-document.getElementById("validateBtn").addEventListener("click", () => {
+//#endregion
+
+// 2. Add the Change function
+function changeBuzzerSound(key) {
+    if (buzzerSounds[key]) {
+        selectedBuzzerKey = key;
+        localStorage.setItem("userBuzzer", key);
+
+        // Don't create 'new Audio', just update the source
+        currentBuzzerSound.src = buzzerSounds[key];
+        currentBuzzerSound.volume = 0.3;
+
+        // Load and play a preview
+        currentBuzzerSound.load();
+        currentBuzzerSound.play().catch(e => console.log("Preview blocked:", e));
+    }
+}
+// Example: Populate a select element if you have one with id "buzzerSelect"
+const buzzerSelect = document.getElementById("buzzerSelect");
+if (buzzerSelect) {
+    Object.keys(buzzerSounds).forEach(key => {
+        const opt = document.createElement("option");
+        opt.value = key;
+        opt.textContent = key;
+        if (key === selectedBuzzerKey) opt.selected = true;
+        buzzerSelect.appendChild(opt);
+    });
+    buzzerSelect.onchange = (e) => changeBuzzerSound(e.target.value);
+}
+
+// 3. Add the Initialization function
+function initBuzzerMenus() {
+    const menus = [document.getElementById("buzzerSelect"), document.getElementById("buzzerSelectPlayer")];
+    menus.forEach(menu => {
+        if (!menu) return;
+        menu.innerHTML = "";
+        Object.keys(buzzerSounds).forEach(key => {
+            const opt = document.createElement("option");
+            opt.value = key;
+            opt.textContent = key;
+            if (key === selectedBuzzerKey) opt.selected = true;
+            menu.appendChild(opt);
+        });
+        menu.onchange = (e) => {
+            changeBuzzerSound(e.target.value);
+            // Sync the other menu if it exists
+            menus.forEach(m => { if (m) m.value = e.target.value; });
+        };
+    });
+}
+
+// --- 4. THEME LOGIC & SPIN WHEEL (FLUID VERSION) ---
+
+// 1. Initialise les slots (statique)
+function initSlots(centerIndex = 0) {
+    if (questionBank.length === 0) return;
+    const slots = document.querySelectorAll(".slot-card");
+
+    // On s'assure que l'affichage statique est identique à la fin de l'animation
+    slots[0].innerText = getTheme(centerIndex - 2).Theme;
+    slots[1].innerText = getTheme(centerIndex - 1).Theme;
+    slots[2].innerText = getTheme(centerIndex).Theme;
+    slots[3].innerText = getTheme(centerIndex + 1).Theme;
+    slots[4].innerText = getTheme(centerIndex + 2).Theme;
+
+    currentIndex = centerIndex;
+}
+
+function getTheme(index) {
+    const len = questionBank.length;
+    return questionBank[((index % len) + len) % len];
+}
+
+function startSyncedSpin() {
+    const target = Math.floor(Math.random() * questionBank.length);
+    update(ref(db, 'rooms/' + lobbyCode + '/spin'), {
+        targetIndex: target,
+        seed: Date.now(),
+        status: "spinning"
+    });
+}
+
+function directSelectTheme(themeObj) {
+    update(ref(db, 'rooms/' + lobbyCode), {
+        activeCard: themeObj,
+        winner: null,
+        blocked: [],
+        "spin/status": "idle"
+    });
+}
+
+// 2. La fonction de spin fluide (Remplace entièrement l'ancienne)
+async function spinTheWheel(targetThemeIndex) {
+    if (isSpinningLocally) return;
+    isSpinningLocally = true;
+
+    const overlay = document.getElementById("slotMachineOverlay");
+    const reel = document.getElementById("slotReel");
+    overlay.hidden = false;
+
+    const totalSteps = 40;
+    const spinDuration = 6100;
+    const cardHeight = 30;
+
+    reel.innerHTML = "";
+
+    for (let i = 0; i <= totalSteps + 4; i++) {
+        const card = document.createElement("div");
+        card.className = "slot-card";
+        const themeIndex = (targetThemeIndex - totalSteps - 2) + i;
+        card.innerText = getTheme(themeIndex).Theme;
+        reel.appendChild(card);
+    }
+
+    if (typeof tickSound !== 'undefined') {
+        tickSound.currentTime = 0;
+        tickSound.play().catch(() => { });
+    }
+
+    reel.style.transition = "none";
+    reel.style.transform = "translateY(0)";
+    reel.offsetHeight;
+
+    reel.style.transition = `transform ${spinDuration}ms cubic-bezier(0.15, 0, 0.15, 1)`;
+    reel.classList.add("spinning-blur");
+    reel.style.transform = `translateY(-${totalSteps * cardHeight}vh)`;
+
+    setTimeout(() => {
+        reel.style.transition = "none";
+        reel.classList.remove("spinning-blur");
+
+        initSlots(targetThemeIndex);
+
+        // FIX: Use getTheme helper to handle index 0 -> Last Item wrap-around
+        const finalWinnerTheme = getTheme(targetThemeIndex - 1);
+
+        overlay.classList.add("winner-glow");
+
+        setTimeout(() => {
+            overlay.hidden = true;
+            overlay.classList.remove("winner-glow");
+            isSpinningLocally = false;
+
+            if (role === "host") {
+                // Update global currentIndex so "Keep Theme" works
+                currentIndex = ((targetThemeIndex - 1 % questionBank.length) + questionBank.length) % questionBank.length;
+
+                update(ref(db, 'rooms/' + lobbyCode), {
+                    activeCard: finalWinnerTheme,
+                    winner: null,
+                    blocked: [],
+                    "spin/status": "done"
+                });
+            }
+        }, 2000);
+    }, spinDuration);
+}
+
+// --- 5. BUZZER & ACTION ---
+document.getElementById("randomThemeBtn").onclick = () => startSyncedSpin();
+
+document.getElementById("keepThemeBtn").onclick = () => {
+    // We use the currentIndex which was set by the last spin or selection
+    const themeObj = questionBank[currentIndex];
+    if (themeObj) {
+        directSelectTheme(themeObj);
+    }
+};
+
+document.getElementById("selectThemeBtn").onclick = () => {
+    const container = document.getElementById("themeButtonsContainer");
+    container.innerHTML = "";
+    questionBank.forEach((q, idx) => {
+        const btn = document.createElement("button");
+        btn.textContent = q.Theme;
+        btn.className = "btn-gm gray";
+        btn.onclick = () => {
+            initSlots(idx);
+            directSelectTheme(q);
+            document.getElementById("themeListModal").hidden = true;
+        };
+        container.appendChild(btn);
+    });
+    document.getElementById("themeListModal").hidden = false;
+};
+
+document.getElementById("manualModeBtn").onclick = () => {
+    directSelectTheme({ Theme: "MANUAL MODE", E1: "---", E2: "---", M1: "---", M2: "---", H1: "---", H2: "---" });
+};
+
+document.getElementById("buzzBtn").onclick = () => {
+    currentBuzzerSound.currentTime = 0;
+    currentBuzzerSound.play().catch(e => console.log("Audio blocked"));
+
+    update(ref(db, 'rooms/' + lobbyCode), {
+        winner: playerName,
+        winnerSound: selectedBuzzerKey, // Add this line
+        timerActive: true
+    });
+};
+
+document.getElementById("validateBtn").onclick = () => {
     update(ref(db, 'rooms/' + lobbyCode), {
         winner: null,
-        buzzerLocked: false,
+        activeCard: null,
+        blocked: [],
         timerActive: false,
-        blocked: [] // Full reset
+        "spin/status": "idle"
     });
-});
+};
 
-document.getElementById("wrongBtn").addEventListener("click", () => {
+document.getElementById("wrongBtn").onclick = () => {
     const roomRef = ref(db, 'rooms/' + lobbyCode);
     onValue(roomRef, (snapshot) => {
         const data = snapshot.val();
-        if (!data.winner) return;
-
         let currentBlocks = data.blocked || [];
-        if (!currentBlocks.includes(data.winner)) {
-            currentBlocks.push(data.winner);
+        if (data.winner && !currentBlocks.includes(data.winner)) currentBlocks.push(data.winner);
+        update(roomRef, { winner: null, blocked: currentBlocks, timerActive: false });
+    }, { onlyOnce: true });
+};
+
+document.getElementById("resetRoundBtn").onclick = () => {
+    update(ref(db, 'rooms/' + lobbyCode), {
+        activeCard: null,
+        winner: null,
+        blocked: [],
+        timerActive: false,
+        "spin/status": "idle"
+    });
+};
+
+document.getElementById("forceStopBtn").onclick = () => document.getElementById("resetRoundBtn").click();
+
+// --- 6. LISTENERS ---
+function setupGameListeners() {
+    onValue(ref(db, 'rooms/' + lobbyCode), (snapshot) => {
+        const data = snapshot.val();
+        if (!data) return;
+
+        // If a new winner is detected, play the sound
+        if (data.winner && data.winner !== lastWinner) {
+            if (data.winnerSound && buzzerSounds[data.winnerSound]) {
+                // Only update if it's actually different to prevent restart loops
+                if (currentBuzzerSound.src !== window.location.origin + "/" + buzzerSounds[data.winnerSound]) {
+                    currentBuzzerSound.src = buzzerSounds[data.winnerSound];
+                    currentBuzzerSound.load(); // Force the browser to buffer the new file
+                }
+            }
+
+            currentBuzzerSound.currentTime = 0;
+            // We use a small timeout to ensure the 'src' change is registered
+            setTimeout(() => {
+                currentBuzzerSound.play().catch(e => console.log("Playback blocked:", e));
+            }, 50);
+        }
+        // ------------------------
+
+        if (data.spin && data.spin.status === "spinning" && data.spin.seed !== lastSeed) {
+            lastSeed = data.spin.seed;
+            spinTheWheel(data.spin.targetIndex);
         }
 
-        update(roomRef, {
-            winner: null,
-            buzzerLocked: false,
-            timerActive: false,
-            blocked: currentBlocks
-        });
-    }, { onlyOnce: true });
-});
+        if (data.players) {
+            document.getElementById("playersList").innerHTML = Object.values(data.players)
+                .map(p => `<li>👤 ${p.name}</li>`).join("");
+        }
 
-document.getElementById("resetBuzzBtn").addEventListener("click", () => {
-    update(ref(db, 'rooms/' + lobbyCode), {
-        winner: null,
-        buzzerLocked: false,
-        blocked: []
+        if (data.status === "playing" && gameSection.hidden) {
+            showSection("game");
+            updateUIByRole();
+        }
+
+        const isHost = (role === "host");
+        if (isHost) {
+            if (data.activeCard) {
+                const c = data.activeCard;
+                ["E1", "E2", "M1", "M2", "H1", "H2"].forEach(k => {
+                    if (document.getElementById(`tableAns${k}`)) document.getElementById(`tableAns${k}`).textContent = c[`${k}_Ans`] || "---";
+                    if (document.getElementById(`q${k}`)) document.getElementById(`q${k}`).textContent = c[k] || "---";
+                    if (document.getElementById(`cardAns${k}`)) document.getElementById(`cardAns${k}`).textContent = c[`${k}_Ans`] || "---";
+                });
+
+                if (data.winner) {
+                    document.getElementById("fullScreenCard").hidden = true;
+                    document.getElementById("gmActionPanel").hidden = false;
+                    document.getElementById("activeWinnerName").textContent = "BUZZ: " + data.winner;
+                } else {
+                    document.getElementById("fullScreenCard").hidden = false;
+                    document.getElementById("gmActionPanel").hidden = true;
+                }
+            } else {
+                document.getElementById("fullScreenCard").hidden = true;
+                document.getElementById("gmActionPanel").hidden = true;
+            }
+
+            // HOST PROTECTION: Ensure host background stays normal
+            document.body.classList.remove('buzzer-winner', 'buzzer-locked');
+
+        } else {
+            // --- PLAYER BACKGROUND LOGIC ---
+            const body = document.body;
+
+            if (data.winner) {
+                if (data.winner === playerName) {
+                    // I am the winner!
+                    body.classList.add('buzzer-winner');
+                    body.classList.remove('buzzer-locked');
+                } else {
+                    // Someone else buzzed!
+                    body.classList.add('buzzer-locked');
+                    body.classList.remove('buzzer-winner');
+                }
+            } else {
+                // No one has buzzed, reset to normal
+                body.classList.remove('buzzer-winner', 'buzzer-locked');
+            }
+
+            const isBlocked = (data.blocked || []).includes(playerName);
+            const bBtn = document.getElementById("buzzBtn");
+
+            if (data.activeCard) {
+                document.getElementById("playerThemeDisplay").textContent = data.activeCard.Theme;
+            } else {
+                document.getElementById("playerThemeDisplay").textContent = "Wait for Host...";
+            }
+
+            bBtn.disabled = !data.activeCard || data.winner || isBlocked;
+            bBtn.textContent = isBlocked ? "BLOCKED" : "BUZZ !";
+
+            if (data.timerActive && data.winner) {
+                startLocalTimer(data.timeLimit || 10);
+            } else {
+                clearInterval(countdownInterval);
+                document.getElementById("timerContainer").hidden = true;
+            }
+        }
     });
-});
-
-// This ensures the setting is saved to Firebase the moment the Host changes the dropdown
-document.getElementById("timerSetting").addEventListener("change", (e) => {
-    if (role === "host") {
-        update(ref(db, 'rooms/' + lobbyCode), {
-            timeLimit: parseInt(e.target.value)
-        });
-    }
-});
-
-// --- PLAYER ACTION ---
-document.getElementById("buzzBtn").addEventListener("click", () => {
-    // Get the current room data to see what timer setting the host chose
-    const roomRef = ref(db, 'rooms/' + lobbyCode);
-
-    onValue(roomRef, (snapshot) => {
-        const data = snapshot.val();
-        // Use the duration set in Firebase, or default to 10 if not found
-        const duration = data.timeLimit || 10;
-
-        update(roomRef, {
-            winner: playerName,
-            buzzerLocked: true,
-            timerActive: true,
-            timeLimit: parseInt(duration)
-        });
-    }, { onlyOnce: true });
-});
+}
 
 function updateUIByRole() {
     const isHost = (role === "host");
@@ -140,76 +456,14 @@ function updateUIByRole() {
     document.getElementById("playerView").hidden = isHost;
 }
 
-// --- THE MAIN LISTENER ---
-function setupGameListeners() {
-    const roomRef = ref(db, 'rooms/' + lobbyCode);
-
-    onValue(roomRef, (snapshot) => {
-        const data = snapshot.val();
-        if (!data) return;
-
-        // 1. UPDATE PLAYER LIST (Fix for your issue)
-        const listElement = document.getElementById("playersList");
-        if (listElement && data.players) {
-            listElement.innerHTML = "";
-            Object.values(data.players).forEach(p => {
-                const li = document.createElement("li");
-                li.textContent = "👤 " + p.name;
-                listElement.appendChild(li);
-            });
-        }
-
-        // 2. STATUS CHECK
-        if (data.status === "playing" && gameSection.hidden) {
-            showSection(gameSection);
-            updateUIByRole();
-        }
-
-        const buzzBtn = document.getElementById("buzzBtn");
-        const gmWinnerName = document.getElementById("activeWinnerName");
-        const statusText = document.getElementById("gameStatusText");
-        const blockedList = data.blocked || [];
-        const isBlocked = blockedList.includes(playerName);
-
-        // 3. WINNER LOGIC
-        if (data.winner) {
-            if (gmWinnerName) gmWinnerName.textContent = data.winner;
-            if (statusText) statusText.textContent = "Réponse en cours...";
-
-            document.body.className = (data.winner === playerName) ? "winner-green" : "loser-red";
-            if (buzzBtn) buzzBtn.disabled = true;
-
-            if (data.timerActive) startLocalTimer(data.timeLimit);
-        } else {
-            if (gmWinnerName) gmWinnerName.textContent = "---";
-            if (statusText) statusText.textContent = "En attente...";
-            document.body.className = "";
-
-            if (buzzBtn) {
-                buzzBtn.disabled = data.buzzerLocked || isBlocked;
-                buzzBtn.textContent = isBlocked ? "BLOQUÉ" : "BUZZ !";
-                buzzBtn.style.opacity = isBlocked ? "0.4" : "1";
-            }
-            clearInterval(countdownInterval);
-            document.getElementById("timerContainer").hidden = true;
-        }
-    });
-}
-
 function startLocalTimer(seconds) {
     clearInterval(countdownInterval);
     const progressBar = document.getElementById("progressBar");
-    const container = document.getElementById("timerContainer");
-    container.hidden = false;
-
+    document.getElementById("timerContainer").hidden = false;
     let timeLeft = seconds * 10;
-    const totalTime = seconds * 10;
-
     countdownInterval = setInterval(() => {
         timeLeft--;
-        const percentage = (timeLeft / totalTime) * 100;
-        progressBar.style.width = percentage + "%";
-
+        progressBar.style.width = (timeLeft / (seconds * 10)) * 100 + "%";
         if (timeLeft <= 0) {
             clearInterval(countdownInterval);
             if (role === "host") document.getElementById("wrongBtn").click();
@@ -221,3 +475,29 @@ function generateQRCode(code) {
     const url = window.location.origin + window.location.pathname + "?room=" + code;
     new QRious({ element: document.getElementById("qrCode"), value: url, size: 150 });
 }
+
+// Function to fill all buzzer selects in the HTML
+function populateBuzzerMenus() {
+    const selects = [document.getElementById("buzzerSelect"), document.getElementById("buzzerSelectPlayer")];
+
+    selects.forEach(select => {
+        if (!select) return;
+        select.innerHTML = ""; // Clear existing
+        Object.keys(buzzerSounds).forEach(key => {
+            const opt = document.createElement("option");
+            opt.value = key;
+            opt.textContent = key;
+            if (key === selectedBuzzerKey) opt.selected = true;
+            select.appendChild(opt);
+        });
+
+        select.onchange = (e) => {
+            changeBuzzerSound(e.target.value);
+            // Sync both dropdowns if both exist
+            selects.forEach(s => { if (s) s.value = e.target.value; });
+        };
+    });
+}
+
+// Call this ONCE at the end of the script
+populateBuzzerMenus();

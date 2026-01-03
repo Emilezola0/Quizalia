@@ -3,91 +3,160 @@
 
 <head>
     <meta charset="UTF-8">
-    <title>Quizalia - Buzzer Battle</title>
+    <title>Quizalia Pro - Game Show</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="style.css?v=1.0">
+    <link rel="stylesheet" href="style.css">
     <script src="https://cdn.jsdelivr.net/npm/qrious@4.0.2/dist/qrious.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
 </head>
 
 <body>
 
-    <h1>🎲 Quizalia Buzzer App</h1>
+    <h1>🎲 Quizalia Pro</h1>
 
+    <!-- HOME SECTION !!!! -->
     <section id="home">
         <div class="card">
-            <h3>🎤 Create a Lobby</h3>
-            <input type="text" id="hostName" placeholder="Enter Host Name">
+            <h3>🎤 Host a Game</h3>
+            <input type="text" id="hostName" placeholder="Host Name">
             <button id="createLobbyBtn">Create Lobby</button>
         </div>
-
         <div class="card">
-            <h3>🎮 Join a Lobby</h3>
-            <input type="text" id="playerName" placeholder="Enter Your Name">
-            <input type="text" id="lobbyCodeInput" placeholder="Enter Lobby Code">
-            <button id="joinLobbyBtn">Join Lobby</button>
+            <h3>🎮 Join Game</h3>
+            <input type="text" id="playerName" placeholder="Your Name">
+            <input type="text" id="lobbyCodeInput" placeholder="Room Code">
+            <button id="joinLobbyBtn">Join</button>
         </div>
     </section>
 
+    <!-- LOBBY SECTION !!!! -->
     <section id="lobby" hidden>
         <div class="card">
-            <h2>Lobby Code: <span id="lobbyCode">---</span></h2>
-            <canvas id="qrCode"></canvas>
-            <hr>
-            <p>👤 Connected Players:</p>
-            <ul id="playersList"></ul>
+            <h2>Room: <span id="lobbyCode">---</span></h2>
 
-            <button id="startGameBtn" hidden>Start the Game</button>
+            <div class="card sound-card">
+                <h3>🔔 Buzzer Sound</h3>
+                <select id="buzzerSelect" class="custom-select">
+                </select>
+            </div>
+
+            <canvas id="qrCode"></canvas>
+            <ul id="playersList"></ul>
+            <button id="startGameBtn" hidden>Start Game</button>
         </div>
     </section>
 
+    <!-- GAME SECTION !!!! -->
     <section id="game" hidden>
-
-        <div id="timerContainer" hidden class="card">
-            <div id="progressBarContainer"
-                style="width: 100%; background: #eee; height: 15px; border-radius: 10px; overflow: hidden;">
-                <div id="progressBar"
-                    style="width: 100%; height: 100%; background: #27ae60; transition: width 0.1s linear;"></div>
-            </div>
+        <div id="timerContainer" hidden>
+            <div id="progressBar"></div>
         </div>
 
-        <div id="playerView">
-            <button id="buzzBtn">BUZZ !</button>
-        </div>
-
-        <div id="hostView" class="card" hidden>
-            <h2>🎙️ Control Panel</h2>
-            <div id="buzzResult">
-                <p>Status: <span id="gameStatusText">Waiting for a buzz...</span></p>
-                <h1 id="activeWinnerName" style="color: #f1c40f;">---</h1>
-            </div>
-
-            <div class="gm-controls">
-                <button id="validateBtn" class="btn-gm green">✅ CORRECT ANSWER</button>
-                <button id="wrongBtn" class="btn-gm orange">❌ WRONG (Block Player)</button>
-                <button id="resetBuzzBtn" class="btn-gm gray">🔄 RESET ROUND</button>
-            </div>
-
-            <div class="settings">
-                <label>Timer Duration (sec): </label>
-                <div class="settings">
-                    <label>Timer Duration: </label>
-                    <select id="timerSetting">
-                        <option value="5">5 Seconds</option>
-                        <option value="10" selected>10 Seconds</option>
-                        <option value="15">15 Seconds</option>
-                        <option value="20">20 Seconds</option>
-                        <option value="25">25 Seconds</option>
-                        <option value="30">30 Seconds</option>
-                    </select>
+        <!-- WHEEL OVERLAY -->
+        <div id="slotMachineOverlay" hidden>
+            <div class="slot-machine-wrap">
+                <div id="slotReel" class="slot-reel">
+                    <div class="slot-card"></div>
+                    <div class="slot-card"></div>
+                    <div class="slot-card"></div>
+                    <div class="slot-card"></div>
+                    <div class="slot-card"></div>
                 </div>
             </div>
         </div>
+
+        <!-- HOST VIEW -->
+        <div id="hostView" hidden>
+            <div class="theme-controls card">
+                <button id="randomThemeBtn">🎰 Random Spin</button>
+                <button id="selectThemeBtn">📂 Pick Theme</button>
+                <button id="keepThemeBtn" disabled>🔁 Keep Last</button>
+                <button id="manualModeBtn" class="btn-gm gray">⚡ Manual Buzzer</button>
+            </div>
+
+            <!-- THEME LIST MODAL -->
+            <div id="themeListModal" class="card" hidden
+                style="position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); z-index:1100; max-height: 80vh; overflow-y: auto;">
+                <h3>Select a Theme</h3>
+                <div id="themeButtonsContainer"></div>
+                <button onclick="document.getElementById('themeListModal').hidden = true">Close</button>
+            </div>
+
+            <!-- GAME MASTER ACTION PANNEL -->
+            <div id="gmActionPanel" class="card" hidden>
+                <h2 id="activeWinnerName" style="color:#f1c40f">---</h2>
+                <div class="gm-controls">
+                    <button id="validateBtn" class="btn-gm green">✅ CORRECT</button>
+                    <button id="wrongBtn" class="btn-gm orange">❌ WRONG</button>
+                    <button id="resetRoundBtn" class="btn-gm gray">🔄 CLEAR / STOP</button>
+                </div>
+
+                <table class="answer-table">
+                    <tr>
+                        <th class="easy">E1</th>
+                        <td id="tableAnsE1"></td>
+                        <th class="easy">E2</th>
+                        <td id="tableAnsE2"></td>
+                    </tr>
+                    <tr>
+                        <th class="medium">M1</th>
+                        <td id="tableAnsM1"></td>
+                        <th class="medium">M2</th>
+                        <td id="tableAnsM2"></td>
+                    </tr>
+                    <tr>
+                        <th class="hard">H1</th>
+                        <td id="tableAnsH1"></td>
+                        <th class="hard">H2</th>
+                        <td id="tableAnsH2"></td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+
+        <!-- FULL SCREEN CARD -->
+        <div id="fullScreenCard" class="full-overlay" hidden>
+            <button id="forceStopBtn" class="close-x">✖ STOP ROUND</button>
+            <div class="grid-layout">
+                <div class="box easy"><strong>E1:</strong>
+                    <p id="qE1"></p>
+                    <hr><strong>ANS:</strong> <span id="cardAnsE1"></span>
+                </div>
+                <div class="box easy"><strong>E2:</strong>
+                    <p id="qE2"></p>
+                    <hr><strong>ANS:</strong> <span id="cardAnsE2"></span>
+                </div>
+                <div class="box medium"><strong>M1:</strong>
+                    <p id="qM1"></p>
+                    <hr><strong>ANS:</strong> <span id="cardAnsM1"></span>
+                </div>
+                <div class="box medium"><strong>M2:</strong>
+                    <p id="qM2"></p>
+                    <hr><strong>ANS:</strong> <span id="cardAnsM2"></span>
+                </div>
+                <div class="box hard"><strong>H1:</strong>
+                    <p id="qH1"></p>
+                    <hr><strong>ANS:</strong> <span id="cardAnsH1"></span>
+                </div>
+                <div class="box hard"><strong>H2:</strong>
+                    <p id="qH2"></p>
+                    <hr><strong>ANS:</strong> <span id="cardAnsH2"></span>
+                </div>
+            </div>
+        </div>
+
+        <!-- PLAYER VIEW -->
+        <div id="playerView" hidden>
+            <div class="card">
+                <h2 id="playerThemeDisplay">Wait for Host...</h2>
+                <select id="buzzerSelectPlayer" class="custom-select">
+                </select>
+            </div>
+            <button id="buzzBtn">BUZZ !</button>
+        </div>
     </section>
 
-    <audio id="buzzSound" src="https://actions.google.com/sounds/v1/alarms/alarm_clock_short.ogg"></audio>
-    <audio id="resetSound" src="https://actions.google.com/sounds/v1/foley/door_bell.ogg"></audio>
-
-    <script type="module" src="script.js?v=1.0"></script>
+    <script type="module" src="script.js"></script>
 </body>
 
 </html>

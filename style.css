@@ -8,6 +8,14 @@
     --card-bg: rgba(30, 41, 59, 0.7);
 }
 
+/* CRITICAL FIX: 
+   This ensures that when an element has the 'hidden' attribute, 
+   it is completely removed from the layout so it doesn't block clicks.
+*/
+[hidden] {
+    display: none !important;
+}
+
 body {
     font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
     text-align: center;
@@ -17,6 +25,7 @@ body {
     padding: 20px;
     min-height: 100vh;
     transition: background-color 0.3s ease;
+    overflow-x: hidden;
 }
 
 h1 {
@@ -46,8 +55,7 @@ hr {
 }
 
 /* --- INPUTS & SELECTS --- */
-input,
-select {
+input {
     padding: 14px;
     margin: 10px 0;
     border-radius: 12px;
@@ -74,7 +82,7 @@ button {
     border-radius: 12px;
     font-weight: bold;
     font-size: 1rem;
-    transition: all 0.2s transform;
+    transition: all 0.2s;
     box-shadow: 0 4px 15px rgba(52, 152, 219, 0.3);
 }
 
@@ -101,17 +109,13 @@ button:active {
     cursor: pointer;
     user-select: none;
     background: radial-gradient(circle at 35% 35%, #ff6b6b, #c0392b);
-    box-shadow:
-        0 15px 0 #962d22,
-        0 25px 40px rgba(0, 0, 0, 0.5);
+    box-shadow: 0 15px 0 #962d22, 0 25px 40px rgba(0, 0, 0, 0.5);
     transition: all 0.1s ease;
 }
 
 #buzzBtn:active:not(:disabled) {
     transform: translateY(10px);
-    box-shadow:
-        0 5px 0 #962d22,
-        0 10px 20px rgba(0, 0, 0, 0.5);
+    box-shadow: 0 5px 0 #962d22, 0 10px 20px rgba(0, 0, 0, 0.5);
 }
 
 #buzzBtn:disabled {
@@ -122,101 +126,437 @@ button:active {
     transform: translateY(10px);
 }
 
-/* --- GAME MASTER PANEL --- */
-.gm-controls {
+/* --- SLOT MACHINE --- */
+#slotMachineOverlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: radial-gradient(circle, #1e293b 0%, #030712 100%);
+    z-index: 9999;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    overflow: hidden;
+}
+
+.slot-machine-wrap {
+    height: 90vh;
+    width: 95vw;
+    position: relative;
+    overflow: hidden;
+    mask-image: linear-gradient(to bottom, transparent, black 35%, black 65%, transparent);
+    -webkit-mask-image: linear-gradient(to bottom, transparent, black 35%, black 65%, transparent);
+}
+
+/* Neon Selector Window */
+.slot-machine-wrap::after {
+    content: "";
+    position: absolute;
+    top: 30vh;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 90%;
+    max-width: 1000px;
+    height: 30vh;
+    border: 6px solid var(--warning);
+    border-radius: 24px;
+    box-shadow: 0 0 50px var(--warning), inset 0 0 30px var(--warning);
+    z-index: 10;
+    pointer-events: none;
+}
+
+.slot-reel {
+    display: flex;
+    flex-direction: column;
+}
+
+.slot-card {
+    height: 30vh;
+    min-height: 30vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 900;
+    color: white;
+    font-size: clamp(2rem, 10vw, 6rem);
+    text-transform: uppercase;
+    letter-spacing: 4px;
+    text-shadow: 0 5px 15px rgba(0, 0, 0, 0.5);
+}
+
+/* --- VFX --- */
+.spinning-blur {
+    filter: blur(6px);
+}
+
+.winner-glow {
+    animation: screenFlash 0.5s ease 4;
+}
+
+@keyframes screenFlash {
+
+    0%,
+    100% {
+        background: radial-gradient(circle, #1e293b 0%, #030712 100%);
+    }
+
+    50% {
+        background: #1e3a8a;
+    }
+
+    /* Deep blue flash */
+}
+
+/* --- GRID & CARDS (YOUR ORIGINAL) --- */
+.grid-layout {
     display: grid;
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 20px;
+    width: 95%;
+    max-width: 1200px;
+    margin: auto;
+}
+
+.box {
+    padding: 25px;
+    border-radius: 18px;
+    color: white;
+    text-align: left;
+    min-height: 180px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+}
+
+.easy {
+    background: linear-gradient(135deg, #27ae60, #2ecc71);
+}
+
+.medium {
+    background: linear-gradient(135deg, #d35400, #e67e22);
+}
+
+.hard {
+    background: linear-gradient(135deg, #c0392b, #e74c3c);
+}
+
+/* RESPONSIVE TEXT */
+@media (max-width: 600px) {
+    .slot-card {
+        font-size: 2.5rem;
+    }
+}
+
+.slot-pointer {
+    position: absolute;
+    right: 20px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 3rem;
+    color: var(--warning);
+    z-index: 10;
+    text-shadow: 0 0 10px black;
+}
+
+/* --- OVERLAYS --- */
+.full-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(15, 23, 42, 0.96);
+    z-index: 2000;
+    padding: 40px;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    backdrop-filter: blur(20px);
+}
+
+/* --- HOST QUESTION GRID --- */
+.grid-layout {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    /* Better responsiveness */
+    gap: 20px;
+    width: 95%;
+    max-width: 1200px;
+}
+
+/* --- BUTTON SPACING FIX --- */
+.theme-controls {
+    display: flex;
+    flex-wrap: wrap;
+    /* Allows buttons to wrap to next line if screen is small */
+    justify-content: center;
+    gap: 15px;
+    /* Adds space between buttons */
+    margin-bottom: 20px;
+}
+
+/* --- TEXT BOUNDS FIX --- */
+.box {
+    padding: 20px;
+    border-radius: 18px;
+    font-weight: bold;
+    color: white;
+    text-align: left;
+    word-wrap: break-word;
+    /* Forces long text to stay inside */
+    overflow-wrap: break-word;
+    height: auto;
+    min-height: 180px;
+    /* Ensures boxes look consistent */
+}
+
+.box p {
+    margin: 10px 0;
+    font-size: 1.1rem;
+    font-weight: 400;
+}
+
+.box hr {
+    margin: 10px 0;
+    opacity: 0.3;
+}
+
+/* Difficulty Colors */
+.easy {
+    background: linear-gradient(135deg, #27ae60, #2ecc71);
+}
+
+.medium {
+    background: linear-gradient(135deg, #d35400, #e67e22);
+}
+
+.hard {
+    background: linear-gradient(135deg, #c0392b, #e74c3c);
+}
+
+/* --- GAME MASTER CONTROLS --- */
+#activeWinnerName {
+    font-size: 4rem;
+    color: var(--warning);
+    margin: 20px 0;
+    font-weight: 900;
+    text-shadow: 0 0 30px rgba(241, 196, 15, 0.6);
+}
+
+.gm-controls {
+    display: flex;
+    justify-content: center;
+    align-items: center;
     gap: 12px;
-    margin-top: 20px;
+    /* Consistent space between buttons */
+    margin: 20px auto;
+    width: 95%;
+    /* Prevents touching the screen edges */
+    max-width: 600px;
+    /* Keeps them grouped in the center */
+    flex-wrap: nowrap;
+    /* Keeps them on one line on desktop */
 }
 
 .btn-gm {
-    padding: 18px;
-    border-radius: 16px;
-    font-size: 1.1rem;
+    flex: 1;
+    /* This makes all buttons exactly the same width! */
+    padding: 18px 5px;
+    /* Vertical padding for height, minimal side padding */
+    border-radius: 14px;
+    font-size: 1rem;
+    font-weight: bold;
     text-transform: uppercase;
-    letter-spacing: 1px;
+    border: none;
+    cursor: pointer;
+    transition: transform 0.1s, filter 0.2s;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-width: 0;
+    /* Allows flex to shrink them if needed */
 }
 
+/* Button Colors with 3D Depth */
 .green {
     background: var(--success);
-    box-shadow: 0 4px 15px rgba(46, 204, 113, 0.4);
+    box-shadow: 0 5px 0 #27ae60;
 }
 
 .orange {
     background: #e67e22;
-    box-shadow: 0 4px 15px rgba(230, 126, 34, 0.4);
+    box-shadow: 0 5px 0 #d35400;
 }
 
 .gray {
     background: #64748b;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 5px 0 #475569;
 }
 
-#activeWinnerName {
-    font-size: 3.5rem;
-    color: var(--warning);
-    margin: 15px 0;
-    font-weight: 800;
-    text-shadow: 0 0 20px rgba(241, 196, 15, 0.4);
+.btn-gm:active {
+    transform: translateY(3px);
+    box-shadow: 0 2px 0 rgba(0, 0, 0, 0.2);
 }
 
-/* --- PROGRESS TIMER --- */
-#progressBarContainer {
-    background: rgba(0, 0, 0, 0.3);
-    border-radius: 50px;
-    padding: 4px;
-    border: 1px solid rgba(255, 255, 255, 0.1);
+/* Mobile responsive buttons */
+@media (max-width: 480px) {
+    .gm-controls {
+        flex-wrap: wrap;
+        /* Let them stack on tiny phones so they don't overflow */
+    }
+
+    .btn-gm {
+        flex: 1 1 45%;
+        /* Two buttons per row on mobile */
+    }
 }
 
-#progressBar {
-    height: 12px;
-    border-radius: 50px;
-    background: linear-gradient(90deg, #2ecc71, #27ae60);
-    transition: width 0.1s linear;
+/* --- TABLE --- */
+.answer-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 5px;
+    margin-top: 20px;
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 12px;
+    padding: 10px;
 }
 
-/* --- PLAYER LIST --- */
+.answer-table th {
+    padding: 10px;
+    border-radius: 6px;
+    color: white;
+    text-transform: uppercase;
+    font-size: 0.7rem;
+}
+
+.answer-table td {
+    padding: 10px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 6px;
+    font-size: 0.9rem;
+}
+
+/* --- PLAYER LIST & MISC --- */
 #playersList {
     list-style: none;
     padding: 0;
-    text-align: left;
-    max-height: 150px;
-    overflow-y: auto;
 }
 
 #playersList li {
     background: rgba(255, 255, 255, 0.05);
     margin-bottom: 8px;
-    padding: 10px 15px;
-    border-radius: 10px;
+    padding: 12px 20px;
+    border-radius: 12px;
     display: flex;
     align-items: center;
+    font-weight: 600;
 }
 
 #playersList li::before {
     content: "●";
     color: var(--success);
-    margin-right: 10px;
+    margin-right: 15px;
 }
 
-/* --- STATE FEEDBACK --- */
+#progressBarContainer {
+    background: rgba(0, 0, 0, 0.4);
+    border-radius: 50px;
+    padding: 5px;
+    width: 90%;
+    margin: 10px auto;
+}
+
+#progressBar {
+    height: 14px;
+    border-radius: 50px;
+    background: linear-gradient(90deg, #2ecc71, #f1c40f, #e74c3c);
+    width: 100%;
+}
+
+.close-x {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    z-index: 2001;
+}
+
+/* --- BUZZER STATE OVERRIDES --- */
+
+/* The 'locked-out' state for everyone else */
+body.buzzer-locked {
+    background: radial-gradient(circle, #7f1d1d, #450a0a) !important;
+    transition: background 0.2s ease-in-out;
+}
+
+/* The 'active' state for the person who buzzed */
+body.buzzer-winner {
+    background: radial-gradient(circle, #065f46, #064e3b) !important;
+    transition: background 0.2s ease-in-out;
+}
+
+/* Ensure the background doesn't repeat or look broken */
+body.buzzer-locked,
+body.buzzer-winner {
+    background-attachment: fixed;
+}
+
+/* Background state colors for players */
 body.winner-green {
     background: #064e3b !important;
 }
 
 body.loser-red {
-    background: #7f1d1d !important;
+    background: #450a0a !important;
 }
 
-body.host-bg {
-    background: #1e293b !important;
+@keyframes blink {
+    50% {
+        opacity: 0;
+    }
 }
 
-/* QR Code Styling */
-#qrCode {
-    background: white;
-    padding: 10px;
+.slot-pointer {
+    animation: blink 0.5s infinite;
+}
+
+/* --- CUSTOM SELECT STYLING --- */
+.custom-select {
+    padding: 14px;
+    margin: 10px 0;
     border-radius: 12px;
-    margin-top: 15px;
+    border: 2px solid rgba(255, 255, 255, 0.1);
+    background: rgba(15, 23, 42, 0.8);
+    /* Slightly darker for depth */
+    color: white;
+    width: 95%;
+    /* Matches your input width */
+    font-size: 1rem;
+    cursor: pointer;
+    appearance: none;
+    /* Removes default browser arrow */
+    background-image: url("data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 15px center;
+    background-size: 18px;
+    transition: all 0.2s;
+}
+
+.custom-select:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 10px rgba(52, 152, 219, 0.3);
+}
+
+.sound-card h3 {
+    margin-top: 0;
+    font-size: 1.1rem;
+    color: var(--primary);
+    text-transform: uppercase;
+    letter-spacing: 1px;
 }
