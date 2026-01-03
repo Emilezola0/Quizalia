@@ -152,7 +152,6 @@ body:has(.full-overlay:not([hidden])) {
 }
 
 /* --- SLOT MACHINE --- */
-/* --- SLOT MACHINE --- */
 #slotMachineOverlay {
     position: fixed;
     top: 0;
@@ -182,12 +181,12 @@ body:has(.full-overlay:not([hidden])) {
 .slot-machine-wrap::after {
     content: "";
     position: absolute;
-    top: 30vh;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    height: 30vh;
     left: 50%;
-    transform: translateX(-50%);
     width: 90%;
     max-width: 1000px;
-    height: 30vh;
     border: 6px solid var(--warning);
     border-radius: 24px;
     box-shadow: 0 0 50px var(--warning), inset 0 0 30px var(--warning);
@@ -296,19 +295,25 @@ body:has(.full-overlay:not([hidden])) {
     }
 
     .slot-machine-wrap {
-        height: 80vh;
-        display: flex;
-        align-items: center;
-        /* Simplify or remove mask if text disappears */
-        -webkit-mask-image: linear-gradient(to bottom, transparent, black 15%, black 85%, transparent);
-        mask-image: linear-gradient(to bottom, transparent, black 15%, black 85%, transparent);
+        -webkit-mask-image: linear-gradient(to bottom,
+                transparent,
+                black 30%,
+                black 70%,
+                transparent);
+        mask-image: linear-gradient(to bottom,
+                transparent,
+                black 30%,
+                black 70%,
+                transparent);
     }
 
     .slot-card {
         /* Use clamp to ensure it never gets so big it breaks the layout */
         font-size: clamp(1.5rem, 6vw, 4rem);
-        height: 25vh;
+        height: min(30vh, 200px);
         display: flex;
+        transform: translate3d(0, 0, 0);
+        will-change: transform;
         align-items: center;
         justify-content: center;
         /* Ensure text doesn't wrap and disappear */
