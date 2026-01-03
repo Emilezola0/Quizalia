@@ -161,6 +161,8 @@ function initBuzzerMenus() {
     });
 }
 
+//#region THEME LOGIC & SPIN WHEEL
+
 // --- 4. THEME LOGIC & SPIN WHEEL (FLUID VERSION) ---
 
 // 1. Initialise les slots (statique)
@@ -268,6 +270,10 @@ async function spinTheWheel(targetThemeIndex) {
     }, spinDuration);
 }
 
+//#endregion
+
+//#region BUZZER & ACTIONS (BUTTONS)
+
 // --- 5. BUZZER & ACTION ---
 document.getElementById("randomThemeBtn").onclick = () => startSyncedSpin();
 
@@ -312,6 +318,9 @@ document.getElementById("buzzBtn").onclick = () => {
 };
 
 document.getElementById("validateBtn").onclick = () => {
+    const validateSound = new Audio("sounds/CorrectAnswer.mp3")
+    validateSound.currentTime = 0
+    validateSound.play()
     update(ref(db, 'rooms/' + lobbyCode), {
         winner: null,
         activeCard: null,
@@ -322,6 +331,9 @@ document.getElementById("validateBtn").onclick = () => {
 };
 
 document.getElementById("wrongBtn").onclick = () => {
+    const wrongAnswerSound = new Audio("sounds/WrongAnswer.mp3")
+    wrongAnswerSound.currentTime = 0
+    wrongAnswerSound.play()
     const roomRef = ref(db, 'rooms/' + lobbyCode);
     onValue(roomRef, (snapshot) => {
         const data = snapshot.val();
@@ -342,6 +354,10 @@ document.getElementById("resetRoundBtn").onclick = () => {
 };
 
 document.getElementById("forceStopBtn").onclick = () => document.getElementById("resetRoundBtn").click();
+
+//#endregion
+
+//#region LISTENERS
 
 // --- 6. LISTENERS ---
 function setupGameListeners() {
@@ -449,6 +465,8 @@ function setupGameListeners() {
     });
 }
 
+//#endregion
+
 function updateUIByRole() {
     const isHost = (role === "host");
     document.getElementById("startGameBtn").hidden = !isHost;
@@ -459,13 +477,28 @@ function updateUIByRole() {
 function startLocalTimer(seconds) {
     clearInterval(countdownInterval);
     const progressBar = document.getElementById("progressBar");
-    document.getElementById("timerContainer").hidden = false;
-    let timeLeft = seconds * 10;
+    const container = document.getElementById("timerContainer");
+
+    container.hidden = false;
+    progressBar.classList.remove("timer-low"); // Reset animation
+
+    let totalMs = seconds * 1000;
+    let timeLeftMs = totalMs;
+
     countdownInterval = setInterval(() => {
-        timeLeft--;
-        progressBar.style.width = (timeLeft / (seconds * 10)) * 100 + "%";
-        if (timeLeft <= 0) {
+        timeLeftMs -= 100; // Update every 100ms for smoothness
+        let percentage = (timeLeftMs / totalMs) * 100;
+
+        progressBar.style.width = percentage + "%";
+
+        // Add "Danger" animation when less than 3 seconds left
+        if (percentage < 30) {
+            progressBar.classList.add("timer-low");
+        }
+
+        if (timeLeftMs <= 0) {
             clearInterval(countdownInterval);
+            progressBar.style.width = "0%";
             if (role === "host") document.getElementById("wrongBtn").click();
         }
     }, 100);

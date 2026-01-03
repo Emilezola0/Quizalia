@@ -560,3 +560,85 @@ body.loser-red {
     text-transform: uppercase;
     letter-spacing: 1px;
 }
+
+/* --- NEON PRO PROGRESS BAR --- */
+#timerContainer {
+    width: 100%;
+    margin: 30px 0;
+    display: block;
+}
+
+#progressBarContainer {
+    background: rgba(15, 23, 42, 0.8);
+    /* Darker base for neon pop */
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 50px;
+    padding: 2px;
+    /* Thinner padding for a sleeker look */
+    width: 90%;
+    max-width: 500px;
+    margin: 0 auto;
+    height: 18px;
+    /* Slightly sleeker */
+    position: relative;
+    overflow: visible;
+    /* Changed to visible so glow can spread out */
+    box-shadow: 0 0 15px rgba(0, 0, 0, 0.5), inset 0 0 10px rgba(0, 0, 0, 0.8);
+}
+
+#progressBar {
+    height: 100%;
+    width: 100%;
+    border-radius: 50px;
+    /* Neon Cyberpunk Gradient */
+    background: linear-gradient(90deg, #00f2fe 0%, #4facfe 30%, #f093fb 60%, #f5576c 100%);
+    background-size: 200% auto;
+    transition: width 0.1s linear;
+    position: relative;
+
+    /* THE NEON GLOW: Using filter instead of box-shadow for better "light" spread */
+    filter: drop-shadow(0 0 8px rgba(79, 172, 254, 0.8));
+}
+
+/* Energy Scan Effect: A white light that moves across the bar */
+#progressBar::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    border-radius: 50px;
+    background: linear-gradient(90deg,
+            transparent 0%,
+            rgba(255, 255, 255, 0.4) 50%,
+            transparent 100%);
+    background-size: 200% 100%;
+    animation: neonScan 2s infinite linear;
+}
+
+@keyframes neonScan {
+    0% {
+        background-position: 200% 0;
+    }
+
+    100% {
+        background-position: -200% 0;
+    }
+}
+
+/* Danger State: High-intensity Red Glow */
+.timer-low {
+    filter: drop-shadow(0 0 12px #ff004c) !important;
+    background: linear-gradient(90deg, #ff0844 0%, #ffb199 100%) !important;
+}
+
+@keyframes pulse-red {
+    from {
+        box-shadow: 0 0 10px #e74c3c;
+    }
+
+    to {
+        box-shadow: 0 0 25px #ff0000;
+    }
+}
