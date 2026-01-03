@@ -271,18 +271,22 @@ body:has(.full-overlay:not([hidden])) {
 
 /* RESPONSIVE TEXT */
 @media (max-width: 600px) {
-    .slot-machine-wrap::after {
-        width: 95%;
-        height: 25vh;
-        /* Slightly shorter for mobile height */
-        top: 32.5vh;
-        border-width: 4px;
+    .slot-machine-wrap {
+        height: 80vh;
+        /* Reduced from 90 to give breathing room */
+        display: flex;
+        align-items: center;
     }
 
     .slot-card {
+        /* Use clamp to ensure it never gets so big it breaks the layout */
+        font-size: clamp(1.5rem, 6vw, 4rem);
         height: 25vh;
-        min-height: 25vh;
-        font-size: 2rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        /* Ensure text doesn't wrap and disappear */
+        white-space: nowrap;
     }
 
     .full-overlay {
@@ -309,15 +313,24 @@ body:has(.full-overlay:not([hidden])) {
     left: 0;
     width: 100vw;
     height: 100vh;
-    background: rgba(15, 23, 42, 0.96);
+    background: rgba(15, 23, 42, 0.98);
     z-index: 2000;
-    padding: 40px;
+    padding: 20px;
     box-sizing: border-box;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    backdrop-filter: blur(20px);
+
+    /* SCROLL FIXES */
+    display: block;
+    /* Changed from flex to allow natural scrolling */
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    /* Smooth scroll for iOS */
+}
+
+/* To keep the content centered when it IS short enough */
+.full-overlay .card {
+    margin: 40px auto;
+    /* Centers the card and gives top/bottom space */
+    max-width: 90%;
 }
 
 /* --- HOST QUESTION GRID --- */
@@ -536,7 +549,16 @@ body:has(.full-overlay:not([hidden])) {
 
     /* Add padding to the container so the bottom buttons don't cover content */
     #hostView {
-        padding-bottom: 180px;
+        padding-bottom: 220px !important;
+        /* Increased space for the 2x2 grid */
+        overflow-y: auto;
+    }
+
+    .answer-table {
+        margin-bottom: 20px;
+        display: block;
+        /* Allows table to be scrolled horizontally if needed */
+        overflow-x: auto;
     }
 }
 
