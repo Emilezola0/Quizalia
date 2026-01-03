@@ -620,12 +620,23 @@ body:has(.full-overlay:not([hidden])) {
         /* Reset the huge padding */
     }
 
+    .card {
+        padding: 15px;
+        /* Reduced from 30px to give the table more horizontal room */
+    }
+
     .answer-table {
         width: 100%;
         table-layout: fixed;
         /* Forces cells to stay equal width */
         word-wrap: break-word;
         /* Prevents long text from pushing table off-screen */
+    }
+
+    .answer-table td {
+        font-size: 0.8rem;
+        /* Slightly smaller font for better fit */
+        padding: 8px 4px;
     }
 }
 
@@ -638,21 +649,36 @@ body:has(.full-overlay:not([hidden])) {
     background: rgba(0, 0, 0, 0.2);
     border-radius: 12px;
     padding: 10px;
+    /* This ensures the table can't push past the card width */
+    table-layout: fixed;
 }
 
 .answer-table th {
-    padding: 10px;
+    padding: 10px 5px;
     border-radius: 6px;
     color: white;
     text-transform: uppercase;
-    font-size: 0.7rem;
+    font-size: 0.75rem;
+    width: 40px;
+    /* Keeps the labels (E1, M1) small and consistent */
 }
 
 .answer-table td {
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    /* Keeps the table neat */
+    padding: 10px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 6px;
+    font-size: 0.85rem;
+    text-align: left;
+
+    /* CRITICAL FIXES FOR MOBILE VISIBILITY: */
+    white-space: normal;
+    /* Allows text to wrap to multiple lines */
+    overflow: visible;
+    /* Shows all text */
+    word-wrap: break-word;
+    /* Breaks long words if necessary */
+    overflow-wrap: break-word;
+    vertical-align: top;
 }
 
 /* --- PLAYER LIST & MISC --- */
