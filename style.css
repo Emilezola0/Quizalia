@@ -193,11 +193,18 @@ body:has(.full-overlay:not([hidden])) {
     box-shadow: 0 0 50px var(--warning), inset 0 0 30px var(--warning);
     z-index: 10;
     pointer-events: none;
+
+    z-index: 5;
+    /* Lower this slightly */
+    pointer-events: none;
 }
 
 .slot-reel {
     display: flex;
     flex-direction: column;
+    /* Forces the phone to prioritize rendering this container */
+    transform: translateZ(0);
+    will-change: transform;
 }
 
 .slot-card {
@@ -212,6 +219,15 @@ body:has(.full-overlay:not([hidden])) {
     text-transform: uppercase;
     letter-spacing: 4px;
     text-shadow: 0 5px 15px rgba(0, 0, 0, 0.5);
+
+    /* ADD THESE FOR MOBILE STABILITY: */
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+    transform: translateZ(0);
+
+    position: relative;
+    z-index: 2;
+    /* Ensure text has a defined layer */
 }
 
 /* --- VFX --- */
@@ -272,11 +288,20 @@ body:has(.full-overlay:not([hidden])) {
 
 /* RESPONSIVE TEXT */
 @media (max-width: 600px) {
+    .spinning-blur {
+        /* Mobile GPUs struggle with blur filters during fast movement */
+        filter: none !important;
+        opacity: 0.9;
+        /* Use slight transparency instead of blur to simulate speed */
+    }
+
     .slot-machine-wrap {
         height: 80vh;
-        /* Reduced from 90 to give breathing room */
         display: flex;
         align-items: center;
+        /* Simplify or remove mask if text disappears */
+        -webkit-mask-image: linear-gradient(to bottom, transparent, black 15%, black 85%, transparent);
+        mask-image: linear-gradient(to bottom, transparent, black 15%, black 85%, transparent);
     }
 
     .slot-card {
