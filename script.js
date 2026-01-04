@@ -65,23 +65,39 @@ function generateQRCode(code) {
     }
 }
 
-// Helper to handle negative modulo (index wrap-around)
+// Helper updated to use uniqueThemes
 function getTheme(index) {
-    const len = questionBank.length;
-    if (len === 0) return { Theme: "Loading..." };
-    return questionBank[((index % len) + len) % len];
+    const len = uniqueThemes.length;
+    if (len === 0) return "Loading...";
+    const themeName = uniqueThemes[((index % len) + len) % len];
+    return themeName;
 }
 //#endregion
 
 //#region 3. DATA LOADING
+let groupedQuestions = {}; // New global state
+let uniqueThemes = [];    // The list for the wheel
+
 Papa.parse("questions.csv", {
     download: true,
     header: true,
     skipEmptyLines: true,
+    delimiter: ";",
     complete: (results) => {
-        questionBank = results.data;
+        const rawData = results.data;
+        groupedQuestions = {};
+
+        rawData.forEach(row => {
+            if (!row.Theme) return;
+            if (!groupedQuestions[row.Theme]) {
+                groupedQuestions[row.Theme] = [];
+            }
+            groupedQuestions[row.Theme].push(row);
+        });
+
+        uniqueThemes = Object.keys(groupedQuestions);
         initSlots(0);
-        console.log("✅ Questions Loaded");
+        console.log("Grouped Questions Loaded:", uniqueThemes.length, "unique themes found.");
     }
 });
 //#endregion
@@ -161,20 +177,24 @@ document.getElementById("startGameBtn").addEventListener("click", () => {
 
 //#region 5. THEME & SPIN ACTIONS
 function initSlots(centerIndex = 0) {
-    if (questionBank.length === 0) return;
+    if (uniqueThemes.length === 0) return;
+
     const slots = document.querySelectorAll(".slot-card");
     if (slots.length < 5) return;
-    slots[0].innerText = getTheme(centerIndex - 2).Theme;
-    slots[1].innerText = getTheme(centerIndex - 1).Theme;
-    slots[2].innerText = getTheme(centerIndex).Theme;
-    slots[3].innerText = getTheme(centerIndex + 1).Theme;
-    slots[4].innerText = getTheme(centerIndex + 2).Theme;
+
+    slots[0].innerText = getTheme(centerIndex - 2);
+    slots[1].innerText = getTheme(centerIndex - 1);
+    slots[2].innerText = getTheme(centerIndex);
+    slots[3].innerText = getTheme(centerIndex + 1);
+    slots[4].innerText = getTheme(centerIndex + 2);
     currentIndex = centerIndex;
 }
 
 document.getElementById("randomThemeBtn").onclick = () => {
-    if (questionBank.length === 0 || isSpinningLocally) return;
-    const target = Math.floor(Math.random() * questionBank.length);
+    if (uniqueThemes.length === 0 || isSpinningLocally) return;
+
+    const target = Math.floor(Math.random() * uniqueThemes.length);
+
     updateRoom({
         spin: { status: "spinning", targetIndex: target, seed: Date.now() }
     });
@@ -183,14 +203,26 @@ document.getElementById("randomThemeBtn").onclick = () => {
 document.getElementById("selectThemeBtn").onclick = () => {
     const container = document.getElementById("themeButtonsContainer");
     container.innerHTML = "";
-    questionBank.forEach((q, idx) => {
+    uniqueThemes.forEach((themeName, idx) => {
         const btn = document.createElement("button");
-        btn.textContent = q.Theme;
+        btn.textContent = themeName;
         btn.className = "btn-gm gray";
         btn.onclick = () => {
             initSlots(idx);
+
+            // 1. Get the random variation of the selected theme
+            const variations = groupedQuestions[themeName];
+            const q = variations[Math.floor(Math.random() * variations.length)];
+
+            // 2. SAVE to local memory so Keep Theme works later!
             lastSelectedTheme = q;
-            updateRoom({ activeCard: q, winner: null, blocked: [], "spin/status": "idle" });
+            updateRoom({
+                activeCard: q,
+                winner: null,
+                blocked: [],
+                "spin/status": "idle",
+                showPanel: false
+            });
             document.getElementById("themeListModal").hidden = true;
         };
         container.appendChild(btn);
@@ -199,7 +231,23 @@ document.getElementById("selectThemeBtn").onclick = () => {
 };
 
 document.getElementById("keepThemeBtn").onclick = () => {
-    if (lastSelectedTheme) updateRoom({ activeCard: lastSelectedTheme, winner: null, blocked: [], "spin/status": "idle" });
+    const roomRef = ref(db, `rooms/${lobbyCode}`);
+    onValue(roomRef, (snapshot) => {
+        const data = snapshot.val();
+        if (lastSelectedTheme) {
+            updateRoom({
+                activeCard: lastSelectedTheme, // Use the local variable
+                winner: null,
+                blocked: [],
+                timerActive: false,
+                "spin/status": "idle",
+                showPanel: false // Ensure it returns to the Question Grid view
+            });
+            console.log("🔄 Keep Theme triggered using local memory.");
+        } else {
+            alert("No theme to keep! Please spin or select one first.");
+        }
+    }, { onlyOnce: true });
 };
 
 document.getElementById("manualModeBtn").onclick = () => {
@@ -472,7 +520,7 @@ async function spinTheWheel(targetThemeIndex) {
     for (let i = 0; i <= totalSteps + 4; i++) {
         const card = document.createElement("div");
         card.className = "slot-card";
-        card.innerText = getTheme((targetThemeIndex - totalSteps - 2) + i).Theme;
+        card.innerText = getTheme((targetThemeIndex - totalSteps - 2) + i);
         reel.appendChild(card);
     }
 
@@ -497,9 +545,22 @@ async function spinTheWheel(targetThemeIndex) {
             overlay.classList.remove("winner-glow");
             isSpinningLocally = false;
             if (role === "host") {
-                const winTheme = getTheme(targetThemeIndex - 1);
-                lastSelectedTheme = winTheme;
-                updateRoom({ activeCard: winTheme, winner: null, blocked: [], "spin/status": "done" });
+
+                const winThemeName = getTheme(targetThemeIndex - 1);
+                const variations = groupedQuestions[winThemeName];
+
+                if (variations) {
+                    const occurrenceIndex = Math.floor(Math.random() * variations.length);
+                    lastSelectedTheme = variations[occurrenceIndex];
+
+                    updateRoom({
+                        activeCard: variations[occurrenceIndex],
+                        currentOccurrence: occurrenceIndex,
+                        winner: null,
+                        blocked: [],
+                        "spin/status": "done"
+                    });
+                }
             }
         }, 2000);
     }, spinDuration);
