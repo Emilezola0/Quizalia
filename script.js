@@ -11,6 +11,7 @@ let isSpinningLocally = false;
 let lastSeed = null;
 let lastWinner = null;
 let lastSelectedTheme = null;
+let lastTimerState = false;
 
 const buzzerSounds = {
     "Default": "sounds/buzzer/BuzzClassic.mp3",
@@ -263,11 +264,19 @@ if (buzzBtn) {
         currentBuzzerSound.currentTime = 0;
         currentBuzzerSound.play().catch(() => { });
 
-        updateRoom({
-            winner: playerName,
-            winnerSound: selectedBuzzerKey,
-            timerActive: true
-        });
+        // We need to get the timeLimit that was set by the host
+        const roomRef = ref(db, `rooms/${lobbyCode}`);
+        onValue(roomRef, (snapshot) => {
+            const data = snapshot.val();
+            const limit = data.timeLimit || 10; // Fallback to 10 if not found
+
+            updateRoom({
+                winner: playerName,
+                winnerSound: selectedBuzzerKey,
+                timerActive: true,
+                timeLimit: limit // <--- THIS ensures players' timers know the duration!
+            });
+        }, { onlyOnce: true });
     };
 }
 
@@ -306,6 +315,8 @@ if (wrongBtn) {
             // 2. Get total players in the lobby (excluding the host)
             const totalPlayersCount = data.players ? Object.keys(data.players).length : 0;
 
+            lastTimerState = false;
+
             // 3. Check if everyone is now blocked
             if (blocks.length >= totalPlayersCount && totalPlayersCount > 0) {
                 // ALL PLAYERS WRONG: Full Reset
@@ -315,7 +326,7 @@ if (wrongBtn) {
                     blocked: [],       // Clears blocks for next round
                     timerActive: false,
                     "spin/status": "idle",
-                    showPanel: false   // Returns host to main GM screen
+                    showPanel: false,   // Returns host to main GM screen
                 });
                 console.log("🚫 All players wrong. Round reset.");
             } else {
@@ -402,12 +413,32 @@ function setupGameListeners() {
         role === "host" ? renderHostUI(data) : renderPlayerUI(data);
 
         // Timer Sync
+        const timerContainer = document.getElementById("timerContainer");
+        const progressBar = document.getElementById("progressBar");
+
         if (data.timerActive && data.winner) {
-            startLocalTimer(data.timeLimit || 10);
+            // Only trigger start if the timer wasn't already active in the previous sync
+            if (!lastTimerState) {
+                if (timerContainer) {
+                    timerContainer.hidden = false;
+                    timerContainer.style.display = "block";
+                }
+                startLocalTimer(data.timeLimit || 10);
+            }
         } else {
+            // Round ended or reset: stop everything
             clearInterval(countdownInterval);
-            if (document.getElementById("timerContainer")) document.getElementById("timerContainer").hidden = true;
+            if (timerContainer) {
+                timerContainer.hidden = true;
+                timerContainer.style.display = "none";
+            }
+            if (progressBar) {
+                progressBar.style.width = "100%";
+                progressBar.classList.remove("timer-low");
+            }
         }
+        // Update the sentinel for the next data pulse
+        lastTimerState = data.timerActive;
 
         if (data.timeLimit && timeLimitSelect) timeLimitSelect.value = data.timeLimit;
     });
@@ -456,18 +487,16 @@ function renderPlayerUI(data) {
     const whoBuzzedElem = document.getElementById("whoBuzzed");
     const topThemeElem = document.getElementById("playerThemeDisplayTop");
 
-    // Update the Theme Frame
     if (topThemeElem) {
         topThemeElem.textContent = data.activeCard ? data.activeCard.Theme : "WAITING...";
     }
 
+    // Reset background if no winner
     if (!data.winner) {
         body.classList.remove('buzzer-winner', 'buzzer-locked');
-        if (whoBuzzedElem) whoBuzzedElem.textContent = ""; // Clear name if no winner
-    }
-
-    // BACKGROUND LOGIC
-    if (data.winner) {
+        if (whoBuzzedElem) whoBuzzedElem.textContent = "";
+    } else {
+        // Handle winner/locked backgrounds
         if (data.winner === playerName) {
             body.classList.add('buzzer-winner');
             body.classList.remove('buzzer-locked');
@@ -477,25 +506,14 @@ function renderPlayerUI(data) {
             body.classList.remove('buzzer-winner');
             if (whoBuzzedElem) whoBuzzedElem.textContent = `${data.winner.toUpperCase()} IS ANSWERING...`;
         }
-    } else {
-        // No winner? Reset background so players can see clearly
-        body.classList.remove('buzzer-winner', 'buzzer-locked');
     }
 
-    // BUTTON LOGIC
     const bBtn = document.getElementById("buzzBtn");
     if (bBtn) {
-        // The buzzer is enabled if:
-        // 1. There is an active card
-        // 2. There is NO current winner
-        // 3. The player isn't in the "blocked" (wrong answer) list
         const canBuzz = data.activeCard && !data.winner && !isBlocked;
-
         bBtn.disabled = !canBuzz;
         bBtn.textContent = isBlocked ? "BLOCKED" : (data.winner ? "WAIT..." : "BUZZ !");
     }
-
-    document.getElementById("playerThemeDisplay").textContent = data.activeCard ? data.activeCard.Theme : "Wait for Host...";
 }
 
 function updateUIByRole() {
@@ -572,17 +590,30 @@ function startLocalTimer(seconds) {
     const container = document.getElementById("timerContainer");
     if (!progressBar || !container) return;
 
+    // This prevents the "flash" of the old bar size.
+    container.style.display = "block";
     container.hidden = false;
+    progressBar.style.width = "100%";
+
     progressBar.classList.remove("timer-low");
     let totalMs = seconds * 1000, timeLeftMs = totalMs;
+
     countdownInterval = setInterval(() => {
         timeLeftMs -= 100;
         let percentage = (timeLeftMs / totalMs) * 100;
-        progressBar.style.width = percentage + "%";
+
+        // OPTIMIZATION 2: Use Math.max to ensure percentage never goes negative
+        progressBar.style.width = Math.max(0, percentage) + "%";
+
         if (percentage < 30) progressBar.classList.add("timer-low");
+
         if (timeLeftMs <= 0) {
             clearInterval(countdownInterval);
-            if (role === "host") document.getElementById("wrongBtn").click();
+            // SAFETY: Only the host triggers the database update
+            if (role === "host") {
+                const wrongBtn = document.getElementById("wrongBtn");
+                if (wrongBtn) wrongBtn.click();
+            }
         }
     }, 100);
 }

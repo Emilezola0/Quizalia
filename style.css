@@ -825,9 +825,15 @@ body.loser-red {
     width: 100%;
     margin: 30px 0;
     display: block;
+    position: relative;
+    /* Or 'sticky' if you want it to follow scroll */
+    z-index: 1000;
+    /* High number ensures it stays on top of the Theme Frame */
 }
 
 #progressBarContainer {
+    min-height: 18px;
+    /* Prevents collapsing on some mobile browsers */
     background: rgba(15, 23, 42, 0.8);
     /* Darker base for neon pop */
     border: 1px solid rgba(255, 255, 255, 0.2);
