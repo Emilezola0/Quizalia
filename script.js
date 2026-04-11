@@ -42,6 +42,9 @@ const homeSection = document.getElementById("home");
 const lobbySection = document.getElementById("lobby");
 const gameSection = document.getElementById("game");
 const timeLimitSelect = document.getElementById("timeLimitSelect");
+
+let currentFicheIndex = 0;
+let currentThemeVariations = [];
 //#endregion
 
 //#region 2. UTILITIES
@@ -177,6 +180,39 @@ document.getElementById("startGameBtn").addEventListener("click", () => {
 //#endregion
 
 //#region 5. THEME & SPIN ACTIONS
+// Cette fonction va générer les boutons pour CHAQUE question du thème choisi
+function displayQuestionSelection(themeName) {
+    const variations = groupedQuestions[themeName];
+    const container = document.getElementById("themeButtonsContainer"); // On réutilise ce container ou un autre dédié
+    container.innerHTML = `<h3>Thème : ${themeName} - Choisissez une question</h3>`;
+
+    variations.forEach((q, index) => {
+        const btn = document.createElement("button");
+        btn.className = "btn-gm blue"; // Une couleur différente pour les questions
+        // On affiche un aperçu de la question (E1, M1, etc. selon tes colonnes CSV)
+        btn.textContent = `Question ${index + 1}: ${q.E1 || q.Question || "Voir"}`;
+
+        btn.onclick = () => {
+            lastSelectedTheme = q;
+            // On envoie seulement MAINTENANT la question à Firebase
+            updateRoom({
+                activeCard: q,
+                selectedQuestionIndex: index, // Optionnel: pour savoir laquelle est prise
+                winner: null,
+                blocked: [],
+                "spin/status": "idle",
+                showPanel: false // On cache le panel pour voir la question en grand
+            });
+            document.getElementById("themeListModal").hidden = true;
+        };
+        container.appendChild(btn);
+    });
+    document.getElementById("themeListModal").hidden = false;
+}
+
+// Si tu as une fonction qui gère la fin de l'animation de la roue (Spin)
+// il faudra qu'elle appelle aussi displayQuestionSelection(uniqueThemes[targetIndex])
+
 function initSlots(centerIndex = 0) {
     if (uniqueThemes.length === 0) return;
 
@@ -199,36 +235,6 @@ document.getElementById("randomThemeBtn").onclick = () => {
     updateRoom({
         spin: { status: "spinning", targetIndex: target, seed: Date.now() }
     });
-};
-
-document.getElementById("selectThemeBtn").onclick = () => {
-    const container = document.getElementById("themeButtonsContainer");
-    container.innerHTML = "";
-    uniqueThemes.forEach((themeName, idx) => {
-        const btn = document.createElement("button");
-        btn.textContent = themeName;
-        btn.className = "btn-gm gray";
-        btn.onclick = () => {
-            initSlots(idx);
-
-            // 1. Get the random variation of the selected theme
-            const variations = groupedQuestions[themeName];
-            const q = variations[Math.floor(Math.random() * variations.length)];
-
-            // 2. SAVE to local memory so Keep Theme works later!
-            lastSelectedTheme = q;
-            updateRoom({
-                activeCard: q,
-                winner: null,
-                blocked: [],
-                "spin/status": "idle",
-                showPanel: false
-            });
-            document.getElementById("themeListModal").hidden = true;
-        };
-        container.appendChild(btn);
-    });
-    document.getElementById("themeListModal").hidden = false;
 };
 
 document.getElementById("keepThemeBtn").onclick = () => {
@@ -254,6 +260,116 @@ document.getElementById("keepThemeBtn").onclick = () => {
 document.getElementById("manualModeBtn").onclick = () => {
     updateRoom({ activeCard: { Theme: "MANUAL MODE", E1: "---", E2: "---", M1: "---", M2: "---", H1: "---", H2: "---" } });
 };
+
+function openDifficultySelection(themeName) {
+    currentThemeVariations = groupedQuestions[themeName] || [];
+    currentFicheIndex = 0;
+    renderFicheSelector(themeName);
+}
+
+/**
+ * Renders the Host selection modal.
+ */
+function renderFicheSelector(themeName) {
+    const container = document.getElementById("themeButtonsContainer");
+    const modal = document.getElementById('themeListModal');
+    const card = currentThemeVariations[currentFicheIndex];
+
+    modal.scrollTop = 0;
+
+    // Force full screen height on the container
+    container.style.display = "flex";
+    container.style.flexDirection = "column";
+    container.style.minHeight = "100vh";
+
+    container.innerHTML = `
+        <div class="fiche-nav-header">
+            <div class="fiche-info">
+                <h2 style="margin:0; font-size:1.1rem; color:#fff;">${themeName}</h2>
+                <span class="fiche-counter">CARD ${currentFicheIndex + 1} / ${currentThemeVariations.length}</span>
+            </div>
+            <button class="close-x" onclick="document.getElementById('themeListModal').hidden = true">✖ CLOSE</button>
+        </div>
+
+        <div class="vertical-questions-list">
+            ${renderVerticalLevel(card, 'E1', 'easy')}
+            ${renderVerticalLevel(card, 'E2', 'easy')}
+            ${renderVerticalLevel(card, 'M1', 'medium')}
+            ${renderVerticalLevel(card, 'M2', 'medium')}
+            ${renderVerticalLevel(card, 'H1', 'hard')}
+            ${renderVerticalLevel(card, 'H2', 'hard')}
+        </div>
+
+        <div class="fiche-bottom-nav">
+            <button onclick="changeFiche(-1)" class="btn-nav-round">◀ PREVIOUS</button>
+            <div style="color: #fff; font-weight: bold; font-size: 0.9rem; letter-spacing:1px;">FICHE SELECTION</div>
+            <button onclick="changeFiche(1)" class="btn-nav-round">NEXT ▶</button>
+        </div>
+    `;
+}
+
+/**
+ * Renders a question card that fills the available width.
+ */
+function renderVerticalLevel(card, lvl, colorClass) {
+    const question = card[lvl];
+    const answer = card[`${lvl}_Ans`] || card[`${lvl}Ans`] || card[`${lvl}_ans`] || "---";
+
+    if (!question || question === "---") return "";
+
+    return `
+        <div class="host-selection-card ${colorClass}" onclick="selectThisQuestion('${lvl}')">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+                <span class="card-lvl-badge" style="font-weight:bold; padding:4px 10px; border-radius:4px; background:rgba(255,255,255,0.1);">${lvl}</span>
+                <span style="font-size:0.7rem; text-transform:uppercase; letter-spacing:1px; opacity:0.6;">Select Question</span>
+            </div>
+            
+            <div class="card-content">
+                <div style="color:rgba(255,255,255,0.5); font-size:0.75rem; font-weight:bold; margin-bottom:4px;">QUESTION</div>
+                <div style="font-size:1.2rem; line-height:1.4; margin-bottom:15px; color:#fff;">${question}</div>
+                
+                <div style="color:rgba(255,255,255,0.5); font-size:0.75rem; font-weight:bold; margin-bottom:4px;">EXPECTED ANSWER</div>
+                <div style="background: rgba(0,0,0,0.3); padding:10px; border-radius:8px; border-left: 4px solid currentColor; font-style: italic;">
+                    ${answer}
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+// Ensure global functions are available
+window.changeFiche = (dir) => {
+    currentFicheIndex = (currentFicheIndex + dir + currentThemeVariations.length) % currentThemeVariations.length;
+    renderFicheSelector(currentThemeVariations[0].Theme);
+};
+
+window.selectThisQuestion = (lvl) => {
+    const card = currentThemeVariations[currentFicheIndex];
+    updateRoom({
+        activeCard: card,
+        selectedLevel: lvl,
+        winner: null,
+        blocked: [],
+        "spin/status": "idle",
+        showPanel: false
+    });
+    document.getElementById("themeListModal").hidden = true;
+};
+
+// Modifie ton bouton de sélection manuelle
+document.getElementById("selectThemeBtn").onclick = () => {
+    const container = document.getElementById("themeButtonsContainer");
+    container.innerHTML = "<h3>Choisir un thème</h3>";
+    uniqueThemes.forEach((themeName, idx) => {
+        const btn = document.createElement("button");
+        btn.textContent = themeName;
+        btn.className = "btn-gm gray";
+        btn.onclick = () => openDifficultySelection(themeName);
+        container.appendChild(btn);
+    });
+    document.getElementById("themeListModal").hidden = false;
+};
+
 //#endregion
 
 //#region 6. GAME BUTTONS (LATENCY OPTIMIZED)
@@ -323,6 +439,7 @@ if (wrongBtn) {
                 updateRoom({
                     winner: null,
                     activeCard: null,  // Hides the question for everyone
+                    selectedLevel: null,
                     blocked: [],       // Clears blocks for next round
                     timerActive: false,
                     "spin/status": "idle",
@@ -370,6 +487,19 @@ if (resetBtn) {
         });
     };
 }
+
+// 3. Bouton Annuler (pour ta croix ou le bouton STOP)
+window.cancelQuestion = () => {
+    updateRoom({
+        activeCard: null,
+        selectedLevel: null,
+        winner: null,
+        blocked: [],
+        timerActive: false,
+        showPanel: false
+    });
+};
+
 //#endregion
 
 //#region 7. SYNC LISTENERS
@@ -444,41 +574,79 @@ function setupGameListeners() {
     });
 }
 
+/**
+ * Renders the Host's active game screen.
+ */
 function renderHostUI(data) {
-    if (data.activeCard) {
+    const fullScreenCard = document.getElementById("fullScreenCard");
+    const gmActionPanel = document.getElementById("gmActionPanel");
+
+    if (data.activeCard && data.selectedLevel) {
         const c = data.activeCard;
-        const levels = ["E1", "E2", "M1", "M2", "H1", "H2"];
+        const lvl = data.selectedLevel;
+        const question = c[lvl];
+        const answer = c[`${lvl}_Ans`] || c[`${lvl}Ans`] || c[`${lvl}_ans`] || "---";
 
-        levels.forEach(k => {
-            const ansElem = document.getElementById(`tableAns${k}`);
-            const qstElem = document.getElementById(`q${k}`);
-            const cardAnsElem = document.getElementById(`cardAns${k}`);
+        // PHASE 1: Reading Question (Standard View)
+        fullScreenCard.innerHTML = `
+            <button class="close-x" onclick="cancelQuestion()">✖ STOP</button>
+            <div class="host-game-display" style="display:flex; flex-direction:column; height:100vh; background:#0f172a;">
+                <div class="reading-zone" style="flex:1; display:flex; flex-direction:column; justify-content:center; align-items:center; padding:40px; text-align:center;">
+                    <div class="card-lvl-badge" style="position:static; margin-bottom:20px; background:rgba(255,255,255,0.1); padding:5px 15px; border-radius:8px;">${lvl}</div>
+                    <p class="question-to-read" style="font-size:2.5rem; font-weight:bold; color:white; line-height:1.2;">${question}</p>
+                </div>
+                <div class="host-secret-answer" style="background:#1e293b; padding:30px; text-align:center; border-top:4px solid #3498db;">
+                    <span style="color:#94a3b8; font-size:0.9rem; font-weight:bold; letter-spacing:2px;">SECRET ANSWER</span>
+                    <div style="font-size:2rem; color:#2ecc71; font-weight:900; margin-top:10px;">${answer}</div>
+                </div>
+            </div>
+        `;
 
-            if (qstElem) qstElem.textContent = c[k] || "---";
-            const answerText = c[`${k}_Ans`] || c[`${k}Ans`] || c[`${k}_ans`] || "---";
-
-            if (ansElem) ansElem.textContent = answerText;
-            if (cardAnsElem) cardAnsElem.textContent = answerText;
-        });
-
-        // The logic for showing the panel
-        // If there is a winner OR the host manually stopped the round
-        const shouldShowPanel = !!data.winner || data.showPanel === true;
-
-        document.getElementById("fullScreenCard").hidden = shouldShowPanel;
-        document.getElementById("gmActionPanel").hidden = !shouldShowPanel;
-
+        // PHASE 2: Someone Buzzed (The Action Panel Fix)
         if (data.winner) {
-            document.getElementById("activeWinnerName").textContent = "BUZZ: " + data.winner;
-        } else {
-            document.getElementById("activeWinnerName").textContent = "QUESTION PHASE";
+            // Apply high-contrast styling to the winner panel
+            document.getElementById("activeWinnerName").innerHTML = `
+                <div style="background: #1e293b; padding: 25px; border-radius: 15px; border: 2px solid #f1c40f; box-shadow: 0 0 20px rgba(241, 196, 15, 0.2);">
+                    
+                    <div style="color: #f1c40f; font-size: 1.2rem; font-weight: 800; text-transform: uppercase; letter-spacing: 3px; margin-bottom: 5px;">
+                        🚨 TEAM BUZZED
+                    </div>
+                    <div style="font-size: 3.5rem; color: #fff; font-weight: 900; margin-bottom: 20px; text-shadow: 0 4px 10px rgba(0,0,0,0.5);">
+                        ${data.winner}
+                    </div>
+
+                    <hr style="border: 0; border-top: 1px solid rgba(255,255,255,0.1); margin: 20px 0;">
+
+                    <div style="color: #94a3b8; font-size: 0.9rem; font-weight: bold; margin-bottom: 5px;">EXPECTED ANSWER:</div>
+                    <div style="font-size: 3rem; color: #2ecc71; font-weight: 900; line-height: 1.1; margin-bottom: 25px;">
+                        ${answer}
+                    </div>
+
+                    <div style="background: rgba(0,0,0,0.2); padding: 15px; border-radius: 10px; border-left: 4px solid #3498db;">
+                        <div style="color: #3498db; font-size: 0.7rem; font-weight: bold; margin-bottom: 5px; text-align: left;">QUESTION REMINDER:</div>
+                        <div style="font-size: 1.1rem; color: #cbd5e1; font-style: italic; text-align: left;">"${question}"</div>
+                    </div>
+                </div>
+            `;
+
+            // Hide the old unused table
+            const table = gmActionPanel.querySelector(".answer-table");
+            if (table) table.style.display = "none";
         }
+
+        const shouldShowPanel = !!data.winner || data.showPanel === true;
+        fullScreenCard.hidden = shouldShowPanel;
+        gmActionPanel.hidden = !shouldShowPanel;
     } else {
-        document.getElementById("fullScreenCard").hidden = true;
-        document.getElementById("gmActionPanel").hidden = true;
+        fullScreenCard.hidden = true;
+        gmActionPanel.hidden = true;
     }
-    // Host never gets red/green backgrounds
-    document.body.classList.remove('buzzer-winner', 'buzzer-locked');
+}
+
+function getDiffClass(lvl) {
+    if (lvl.startsWith('E')) return 'easy';
+    if (lvl.startsWith('M')) return 'medium';
+    return 'hard';
 }
 
 function renderPlayerUI(data) {
@@ -562,8 +730,8 @@ async function spinTheWheel(targetThemeIndex) {
             overlay.hidden = true;
             overlay.classList.remove("winner-glow");
             isSpinningLocally = false;
-            if (role === "host") {
 
+            if (role === "host") {
                 const winThemeName = getTheme(targetThemeIndex - 1);
                 const variations = groupedQuestions[winThemeName];
 
@@ -571,6 +739,19 @@ async function spinTheWheel(targetThemeIndex) {
                     const occurrenceIndex = Math.floor(Math.random() * variations.length);
                     lastSelectedTheme = variations[occurrenceIndex];
 
+                    // 1. UPDATE GLOBAL STATE FOR THE MODAL
+                    // Make sure these variable names match your global definitions
+                    currentThemeVariations = variations;
+                    currentFicheIndex = occurrenceIndex;
+
+                    // 2. SHOW THE MODAL
+                    const modal = document.getElementById('themeListModal');
+                    modal.hidden = false;
+
+                    // 3. CALL YOUR NEW RENDER FUNCTION
+                    renderFicheSelector(winThemeName);
+
+                    // 4. UPDATE FIREBASE/ROOM STATE
                     updateRoom({
                         activeCard: variations[occurrenceIndex],
                         currentOccurrence: occurrenceIndex,

@@ -395,27 +395,33 @@ body:has(.full-overlay:not([hidden])) {
 }
 
 /* --- BUTTON SPACING FIX --- */
+/* 1. Modal Container: Remove padding to let Header touch the edges */
 #themeListModal {
-    background: rgba(15, 23, 42, 0.98);
-    /* Très sombre et opaque */
-    backdrop-filter: blur(20px);
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw !important;
+    height: 100vh !important;
+    background: #0f172a;
+    /* Your dark background color */
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow-y: auto;
+    /* Allows scrolling of the list */
+    display: flex;
+    flex-direction: column;
 }
 
 #themeButtonsContainer {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-    gap: 15px;
-    /* Espace entre les boutons */
-    width: 100%;
-    max-width: 900px;
-    max-height: 70vh;
-    /* Limite la hauteur à 70% de l'écran */
-    overflow-y: auto;
-    /* Active le scroll box */
-    padding: 20px;
-    background: rgba(0, 0, 0, 0.2);
-    border-radius: 20px;
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    flex: 1;
+    /* This forces the container to grow and fill all available space */
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+    /* Ensures it's at least as tall as the screen */
+    width: 100% !important;
+    background: #0f172a;
+    /* Match the modal background */
 }
 
 /* Personnalisation du scrollbar pour le style Cyberpunk */
@@ -718,13 +724,6 @@ body:has(.full-overlay:not([hidden])) {
     width: 100%;
 }
 
-.close-x {
-    position: absolute;
-    top: 20px;
-    right: 20px;
-    z-index: 2001;
-}
-
 /* --- BUZZER STATE OVERRIDES --- */
 
 .buzzer-announcement {
@@ -1020,4 +1019,120 @@ body.loser-red {
     margin-top: 15px;
     font-size: 1.4rem;
     font-weight: bold;
+}
+
+/* --- MODAL OVERRIDE --- */
+#themeListModal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw !important;
+    /* Force full viewport width */
+    height: 100vh !important;
+    background: #0f172a;
+    z-index: 2000;
+    padding: 0 !important;
+    /* Remove padding to let header touch edges */
+    margin: 0 !important;
+    box-sizing: border-box;
+    overflow-y: auto;
+}
+
+/* --- THE STICKY HEADER --- */
+.fiche-nav-header {
+    display: flex !important;
+    justify-content: center;
+    /* Center the title */
+    align-items: center;
+    background: #1e293b;
+    padding: 15px;
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+    width: 100% !important;
+    box-sizing: border-box;
+    border-bottom: 2px solid rgba(255, 255, 255, 0.1);
+}
+
+.fiche-bottom-nav {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    background: #1e293b;
+    display: flex;
+    justify-content: space-around;
+    /* Spaced out buttons */
+    align-items: center;
+    padding: 15px 0;
+    border-top: 2px solid var(--primary);
+    z-index: 1000;
+    box-shadow: 0 -5px 15px rgba(0, 0, 0, 0.5);
+}
+
+/* --- THE VERTICAL LIST --- */
+/* --- THE GRID CONTAINER --- */
+.vertical-questions-list {
+    flex-grow: 1;
+    display: grid !important;
+    grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)) !important;
+    gap: 20px;
+    padding: 20px !important;
+    box-sizing: border-box;
+    padding-bottom: 120px !important;
+}
+
+/* --- THE CARD --- */
+.host-selection-card {
+    position: relative;
+    display: flex !important;
+    flex-direction: column;
+    padding: 20px;
+    border-radius: 12px;
+    border: 2px solid transparent;
+    transition: all 0.2s ease;
+    background: #1e293b;
+    /* Base dark color */
+}
+
+/* Color Coding Logic */
+.host-selection-card.easy {
+    border-color: #27ae60;
+    box-shadow: 0 4px 15px rgba(39, 174, 96, 0.2);
+}
+
+.host-selection-card.medium {
+    border-color: #f39c12;
+    box-shadow: 0 4px 15px rgba(243, 156, 18, 0.2);
+}
+
+.host-selection-card.hard {
+    border-color: #e74c3c;
+    box-shadow: 0 4px 15px rgba(231, 76, 60, 0.2);
+}
+
+.host-selection-card:hover {
+    transform: translateY(-3px);
+    filter: brightness(1.2);
+    background: #2d3748;
+}
+
+/* --- MOBILE RESPONSIVENESS --- */
+@media (max-width: 850px) {
+    .vertical-questions-list {
+        grid-template-columns: 1fr !important;
+    }
+}
+
+/* Close Button stays on top of everything */
+.close-x {
+    position: fixed;
+    top: 15px;
+    right: 15px;
+    z-index: 9999;
+}
+
+.close-x:active {
+    transform: translateY(2px);
+    box-shadow: 0 2px 0 #c0392b;
 }
