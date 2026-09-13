@@ -6,14 +6,17 @@
     <title>Quizalia Pro - Game Show</title>
     <link rel="icon" type="image/x-icon" href="favicon.ico">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="style.css?v=3.1">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="stylesheet"
+        href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;800;900&family=Work+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap">
+    <link rel="stylesheet" href="style.css?v=3.2">
     <script src="https://cdn.jsdelivr.net/npm/qrious@4.0.2/dist/qrious.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
 </head>
 
 <body>
 
-    <h1>🎲 Quizalia Pro</h1>
+    <h1>🎲 Quiz<span class="accent">alia</span> Pro</h1>
 
     <!-- HOME SECTION !!!! -->
     <section id="home">
@@ -49,7 +52,7 @@
 
     <!-- GAME SECTION !!!! -->
     <section id="game" hidden>
-        <div id="timerContainer" style="display: none;">
+        <div id="timerContainer" hidden>
             <div id="progressBarContainer">
                 <div id="progressBar"></div>
             </div>
@@ -71,14 +74,15 @@
         <!-- HOST VIEW -->
         <div id="hostView" hidden>
             <div class="theme-controls card">
-                <button id="randomThemeBtn">🎰 Random Spin</button>
-                <button id="selectThemeBtn">📂 Pick Theme</button>
-                <button id="keepThemeBtn">🔁 Keep Last</button>
+                <button id="randomThemeBtn" disabled>🎰 Random Spin</button>
+                <button id="selectThemeBtn" disabled>📂 Pick Theme</button>
+                <button id="keepThemeBtn" class="btn-gm gray">🔁 Keep Last</button>
                 <button id="manualModeBtn" class="btn-gm gray">⚡ Manual Buzzer</button>
+                <p id="questionsStatus" class="status-text">Loading questions…</p>
 
                 <div class="timer-separator"></div>
                 <div class="timer-config">
-                    <span>⏱️ TIMER DURATION</span>
+                    <span>⏱️ Timer duration</span>
                     <select id="timeLimitSelect" class="neon-select">
                         <option value="5">5s</option>
                         <option value="10" selected>10s</option>
@@ -89,7 +93,6 @@
                         <option value="60">60s</option>
                     </select>
                 </div>
-                <hr>
             </div>
 
             <!-- THEME LIST MODAL -->
@@ -99,66 +102,17 @@
 
             <!-- GAME MASTER ACTION PANNEL -->
             <div id="gmActionPanel" class="card" hidden>
-                <h2 id="activeWinnerName" style="color:#f1c40f">---</h2>
+                <div id="activeWinnerName">---</div>
                 <div class="gm-controls">
-                    <button id="validateBtn" class="btn-gm green">✅ CORRECT</button>
-                    <button id="wrongBtn" class="btn-gm orange">❌ WRONG</button>
+                    <button id="validateBtn" class="btn-gm green"><span class="icon">✓</span> CORRECT</button>
+                    <button id="wrongBtn" class="btn-gm orange"><span class="icon">✕</span> WRONG</button>
                     <button id="resetRoundBtn" class="btn-gm gray">🔄 CLEAR / STOP</button>
                 </div>
-
-                <table class="answer-table">
-                    <tr>
-                        <th class="easy">E1</th>
-                        <td id="tableAnsE1"></td>
-                        <th class="easy">E2</th>
-                        <td id="tableAnsE2"></td>
-                    </tr>
-                    <tr>
-                        <th class="medium">M1</th>
-                        <td id="tableAnsM1"></td>
-                        <th class="medium">M2</th>
-                        <td id="tableAnsM2"></td>
-                    </tr>
-                    <tr>
-                        <th class="hard">H1</th>
-                        <td id="tableAnsH1"></td>
-                        <th class="hard">H2</th>
-                        <td id="tableAnsH2"></td>
-                    </tr>
-                </table>
             </div>
         </div>
 
-        <!-- FULL SCREEN CARD -->
-        <div id="fullScreenCard" class="full-overlay" hidden>
-            <button id="forceStopBtn" class="close-x">✖ STOP ROUND</button>
-            <div class="grid-layout">
-                <div class="box easy"><strong>E1:</strong>
-                    <p id="qE1"></p>
-                    <hr><strong>ANS:</strong> <span id="cardAnsE1"></span>
-                </div>
-                <div class="box easy"><strong>E2:</strong>
-                    <p id="qE2"></p>
-                    <hr><strong>ANS:</strong> <span id="cardAnsE2"></span>
-                </div>
-                <div class="box medium"><strong>M1:</strong>
-                    <p id="qM1"></p>
-                    <hr><strong>ANS:</strong> <span id="cardAnsM1"></span>
-                </div>
-                <div class="box medium"><strong>M2:</strong>
-                    <p id="qM2"></p>
-                    <hr><strong>ANS:</strong> <span id="cardAnsM2"></span>
-                </div>
-                <div class="box hard"><strong>H1:</strong>
-                    <p id="qH1"></p>
-                    <hr><strong>ANS:</strong> <span id="cardAnsH1"></span>
-                </div>
-                <div class="box hard"><strong>H2:</strong>
-                    <p id="qH2"></p>
-                    <hr><strong>ANS:</strong> <span id="cardAnsH2"></span>
-                </div>
-            </div>
-        </div>
+        <!-- FULL SCREEN CARD (filled by script.js when a question is selected) -->
+        <div id="fullScreenCard" class="full-overlay" hidden></div>
 
         <!-- PLAYER VIEW -->
         <div id="playerView" hidden>
@@ -177,7 +131,7 @@
         </div>
     </section>
 
-    <script type="module" src="script.js?v=3.1"></script>
+    <script type="module" src="script.js?v=3.2"></script>
 </body>
 
 </html>

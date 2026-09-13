@@ -12,6 +12,7 @@ let lastSeed = null;
 let lastWinner = null;
 let lastSelectedTheme = null;
 let lastTimerState = false;
+let currentTimeLimit = 10;
 
 const buzzerSounds = {
     "Default": "sounds/buzzer/BuzzClassic.mp3",
@@ -45,6 +46,13 @@ const timeLimitSelect = document.getElementById("timeLimitSelect");
 
 let currentFicheIndex = 0;
 let currentThemeVariations = [];
+
+// Prefill the room code when arriving from a QR code link (?room=CODE)
+const roomFromUrl = new URLSearchParams(window.location.search).get("room");
+if (roomFromUrl) {
+    const lobbyCodeInput = document.getElementById("lobbyCodeInput");
+    if (lobbyCodeInput) lobbyCodeInput.value = roomFromUrl.toUpperCase();
+}
 //#endregion
 
 //#region 2. UTILITIES
@@ -76,6 +84,25 @@ function getTheme(index) {
     const themeName = uniqueThemes[((index % len) + len) % len];
     return themeName;
 }
+
+function getAnswer(card, lvl) {
+    return card[`${lvl}_Ans`] || "---";
+}
+
+function getDiffClass(lvl) {
+    if (lvl.startsWith('E')) return 'easy';
+    if (lvl.startsWith('M')) return 'medium';
+    return 'hard';
+}
+
+function setQuestionsStatus(text, loaded) {
+    const statusEl = document.getElementById("questionsStatus");
+    if (statusEl) statusEl.textContent = text;
+    const randomBtn = document.getElementById("randomThemeBtn");
+    const selectBtn = document.getElementById("selectThemeBtn");
+    if (randomBtn) randomBtn.disabled = !loaded;
+    if (selectBtn) selectBtn.disabled = !loaded;
+}
 //#endregion
 
 //#region 3. DATA LOADING
@@ -101,7 +128,11 @@ Papa.parse("questions.csv", {
 
         uniqueThemes = Object.keys(groupedQuestions);
         initSlots(0);
+        setQuestionsStatus(`${uniqueThemes.length} themes loaded`, true);
         console.log("Grouped Questions Loaded:", uniqueThemes.length, "unique themes found.");
+    },
+    error: () => {
+        setQuestionsStatus("Failed to load questions.csv", false);
     }
 });
 //#endregion
@@ -122,13 +153,26 @@ document.getElementById("createLobbyBtn").addEventListener("click", () => {
         timerActive: false,
         spin: { status: "idle", targetIndex: 0, seed: 0 }
     }).then(() => {
-        document.getElementById("lobbyCode").textContent = lobbyCode;
+        setupLobbyCodeDisplay(lobbyCode);
         setupGameListeners();
         showSection("lobby");
         updateUIByRole();
         generateQRCode(lobbyCode);
     });
 });
+
+function setupLobbyCodeDisplay(code) {
+    const elem = document.getElementById("lobbyCode");
+    elem.textContent = code;
+    elem.classList.add("copyable");
+    elem.title = "Click to copy";
+    elem.onclick = () => {
+        navigator.clipboard?.writeText(code).then(() => {
+            elem.textContent = "Copied!";
+            setTimeout(() => { elem.textContent = code; }, 1000);
+        }).catch(() => { });
+    };
+}
 
 document.getElementById("joinLobbyBtn").addEventListener("click", () => {
     let inputName = document.getElementById("playerName").value.trim() || "Player";
@@ -165,7 +209,7 @@ document.getElementById("joinLobbyBtn").addEventListener("click", () => {
 
         // 3. Push to Firebase
         push(ref(db, `rooms/${lobbyCode}/players`), { name: playerName }).then(() => {
-            document.getElementById("lobbyCode").textContent = lobbyCode;
+            setupLobbyCodeDisplay(lobbyCode);
             setupGameListeners();
             showSection("lobby");
             updateUIByRole();
@@ -180,39 +224,6 @@ document.getElementById("startGameBtn").addEventListener("click", () => {
 //#endregion
 
 //#region 5. THEME & SPIN ACTIONS
-// Cette fonction va générer les boutons pour CHAQUE question du thème choisi
-function displayQuestionSelection(themeName) {
-    const variations = groupedQuestions[themeName];
-    const container = document.getElementById("themeButtonsContainer"); // On réutilise ce container ou un autre dédié
-    container.innerHTML = `<h3>Thème : ${themeName} - Choisissez une question</h3>`;
-
-    variations.forEach((q, index) => {
-        const btn = document.createElement("button");
-        btn.className = "btn-gm blue"; // Une couleur différente pour les questions
-        // On affiche un aperçu de la question (E1, M1, etc. selon tes colonnes CSV)
-        btn.textContent = `Question ${index + 1}: ${q.E1 || q.Question || "Voir"}`;
-
-        btn.onclick = () => {
-            lastSelectedTheme = q;
-            // On envoie seulement MAINTENANT la question à Firebase
-            updateRoom({
-                activeCard: q,
-                selectedQuestionIndex: index, // Optionnel: pour savoir laquelle est prise
-                winner: null,
-                blocked: [],
-                "spin/status": "idle",
-                showPanel: false // On cache le panel pour voir la question en grand
-            });
-            document.getElementById("themeListModal").hidden = true;
-        };
-        container.appendChild(btn);
-    });
-    document.getElementById("themeListModal").hidden = false;
-}
-
-// Si tu as une fonction qui gère la fin de l'animation de la roue (Spin)
-// il faudra qu'elle appelle aussi displayQuestionSelection(uniqueThemes[targetIndex])
-
 function initSlots(centerIndex = 0) {
     if (uniqueThemes.length === 0) return;
 
@@ -277,33 +288,25 @@ function renderFicheSelector(themeName) {
 
     modal.scrollTop = 0;
 
-    // Force full screen height on the container
-    container.style.display = "flex";
-    container.style.flexDirection = "column";
-    container.style.minHeight = "100vh";
+    const levels = ['E1', 'E2', 'M1', 'M2', 'H1', 'H2'];
 
     container.innerHTML = `
         <div class="fiche-nav-header">
             <div class="fiche-info">
-                <h2 style="margin:0; font-size:1.1rem; color:#fff;">${themeName}</h2>
+                <h2>${themeName}</h2>
                 <span class="fiche-counter">CARD ${currentFicheIndex + 1} / ${currentThemeVariations.length}</span>
             </div>
-            <button class="close-x" onclick="document.getElementById('themeListModal').hidden = true">✖ CLOSE</button>
+            <button class="close-x" onclick="document.getElementById('themeListModal').hidden = true">✕ Close</button>
         </div>
 
         <div class="vertical-questions-list">
-            ${renderVerticalLevel(card, 'E1', 'easy')}
-            ${renderVerticalLevel(card, 'E2', 'easy')}
-            ${renderVerticalLevel(card, 'M1', 'medium')}
-            ${renderVerticalLevel(card, 'M2', 'medium')}
-            ${renderVerticalLevel(card, 'H1', 'hard')}
-            ${renderVerticalLevel(card, 'H2', 'hard')}
+            ${levels.map(lvl => renderVerticalLevel(card, lvl, getDiffClass(lvl))).join('')}
         </div>
 
         <div class="fiche-bottom-nav">
-            <button onclick="changeFiche(-1)" class="btn-nav-round">◀ PREVIOUS</button>
-            <div style="color: #fff; font-weight: bold; font-size: 0.9rem; letter-spacing:1px;">FICHE SELECTION</div>
-            <button onclick="changeFiche(1)" class="btn-nav-round">NEXT ▶</button>
+            <button onclick="changeFiche(-1)" class="btn-nav-round">◀ Previous</button>
+            <div class="fiche-label">Fiche selection</div>
+            <button onclick="changeFiche(1)" class="btn-nav-round">Next ▶</button>
         </div>
     `;
 }
@@ -313,25 +316,20 @@ function renderFicheSelector(themeName) {
  */
 function renderVerticalLevel(card, lvl, colorClass) {
     const question = card[lvl];
-    const answer = card[`${lvl}_Ans`] || card[`${lvl}Ans`] || card[`${lvl}_ans`] || "---";
-
     if (!question || question === "---") return "";
+    const answer = getAnswer(card, lvl);
 
     return `
         <div class="host-selection-card ${colorClass}" onclick="selectThisQuestion('${lvl}')">
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
-                <span class="card-lvl-badge" style="font-weight:bold; padding:4px 10px; border-radius:4px; background:rgba(255,255,255,0.1);">${lvl}</span>
-                <span style="font-size:0.7rem; text-transform:uppercase; letter-spacing:1px; opacity:0.6;">Select Question</span>
+            <div class="card-header">
+                <span class="card-lvl-badge ${colorClass}">${lvl}</span>
+                <span class="card-hint">Select question</span>
             </div>
-            
             <div class="card-content">
-                <div style="color:rgba(255,255,255,0.5); font-size:0.75rem; font-weight:bold; margin-bottom:4px;">QUESTION</div>
-                <div style="font-size:1.2rem; line-height:1.4; margin-bottom:15px; color:#fff;">${question}</div>
-                
-                <div style="color:rgba(255,255,255,0.5); font-size:0.75rem; font-weight:bold; margin-bottom:4px;">EXPECTED ANSWER</div>
-                <div style="background: rgba(0,0,0,0.3); padding:10px; border-radius:8px; border-left: 4px solid currentColor; font-style: italic;">
-                    ${answer}
-                </div>
+                <div class="qa-label">Question</div>
+                <div class="qa-question">${question}</div>
+                <div class="qa-label">Expected answer</div>
+                <div class="qa-answer-box">${answer}</div>
             </div>
         </div>
     `;
@@ -380,19 +378,14 @@ if (buzzBtn) {
         currentBuzzerSound.currentTime = 0;
         currentBuzzerSound.play().catch(() => { });
 
-        // We need to get the timeLimit that was set by the host
-        const roomRef = ref(db, `rooms/${lobbyCode}`);
-        onValue(roomRef, (snapshot) => {
-            const data = snapshot.val();
-            const limit = data.timeLimit || 10; // Fallback to 10 if not found
-
-            updateRoom({
-                winner: playerName,
-                winnerSound: selectedBuzzerKey,
-                timerActive: true,
-                timeLimit: limit // <--- THIS ensures players' timers know the duration!
-            });
-        }, { onlyOnce: true });
+        // timeLimit is kept in sync by setupGameListeners, so we can write
+        // straight away instead of doing a network round-trip first.
+        updateRoom({
+            winner: playerName,
+            winnerSound: selectedBuzzerKey,
+            timerActive: true,
+            timeLimit: currentTimeLimit
+        });
     };
 }
 
@@ -436,15 +429,7 @@ if (wrongBtn) {
             // 3. Check if everyone is now blocked
             if (blocks.length >= totalPlayersCount && totalPlayersCount > 0) {
                 // ALL PLAYERS WRONG: Full Reset
-                updateRoom({
-                    winner: null,
-                    activeCard: null,  // Hides the question for everyone
-                    selectedLevel: null,
-                    blocked: [],       // Clears blocks for next round
-                    timerActive: false,
-                    "spin/status": "idle",
-                    showPanel: false,   // Returns host to main GM screen
-                });
+                resetRound();
                 console.log("🚫 All players wrong. Round reset.");
             } else {
                 // SOME PLAYERS LEFT: Return to Question Grid
@@ -460,45 +445,23 @@ if (wrongBtn) {
     };
 }
 
-const stopBtn = document.getElementById("forceStopBtn") || document.getElementById("resetRoundBtn");
-if (stopBtn) {
-    stopBtn.onclick = () => {
-        updateRoom({
-            winner: null,
-            activeCard: null,  // This hides the question card for everyone
-            blocked: [],       // This unblocks all players
-            timerActive: false,
-            "spin/status": "idle",
-            showPanel: false   // This hides the host's control panel
-        });
-    };
+// Shared by the "CLEAR / STOP" button and the in-card "✕ Stop" close button.
+function resetRound() {
+    updateRoom({
+        winner: null,
+        activeCard: null,   // Hides the question card for everyone
+        selectedLevel: null,
+        blocked: [],        // Unblocks all players
+        timerActive: false,
+        "spin/status": "idle",
+        showPanel: false    // Hides the host's control panel
+    });
 }
 
 const resetBtn = document.getElementById("resetRoundBtn");
-if (resetBtn) {
-    resetBtn.onclick = () => {
-        updateRoom({
-            winner: null,
-            activeCard: null,  // This hides the question card for everyone
-            blocked: [],       // This unblocks all players
-            timerActive: false,
-            "spin/status": "idle",
-            showPanel: false   // This hides the host's control panel
-        });
-    };
-}
+if (resetBtn) resetBtn.onclick = resetRound;
 
-// 3. Bouton Annuler (pour ta croix ou le bouton STOP)
-window.cancelQuestion = () => {
-    updateRoom({
-        activeCard: null,
-        selectedLevel: null,
-        winner: null,
-        blocked: [],
-        timerActive: false,
-        showPanel: false
-    });
-};
+window.cancelQuestion = resetRound;
 
 //#endregion
 
@@ -549,19 +512,13 @@ function setupGameListeners() {
         if (data.timerActive && data.winner) {
             // Only trigger start if the timer wasn't already active in the previous sync
             if (!lastTimerState) {
-                if (timerContainer) {
-                    timerContainer.hidden = false;
-                    timerContainer.style.display = "block";
-                }
+                if (timerContainer) timerContainer.hidden = false;
                 startLocalTimer(data.timeLimit || 10);
             }
         } else {
             // Round ended or reset: stop everything
             clearInterval(countdownInterval);
-            if (timerContainer) {
-                timerContainer.hidden = true;
-                timerContainer.style.display = "none";
-            }
+            if (timerContainer) timerContainer.hidden = true;
             if (progressBar) {
                 progressBar.style.width = "100%";
                 progressBar.classList.remove("timer-low");
@@ -570,6 +527,7 @@ function setupGameListeners() {
         // Update the sentinel for the next data pulse
         lastTimerState = data.timerActive;
 
+        currentTimeLimit = data.timeLimit || 10;
         if (data.timeLimit && timeLimitSelect) timeLimitSelect.value = data.timeLimit;
     });
 }
@@ -581,72 +539,59 @@ function renderHostUI(data) {
     const fullScreenCard = document.getElementById("fullScreenCard");
     const gmActionPanel = document.getElementById("gmActionPanel");
 
-    if (data.activeCard && data.selectedLevel) {
-        const c = data.activeCard;
-        const lvl = data.selectedLevel;
-        const question = c[lvl];
-        const answer = c[`${lvl}_Ans`] || c[`${lvl}Ans`] || c[`${lvl}_ans`] || "---";
+    if (!data.activeCard) {
+        fullScreenCard.hidden = true;
+        gmActionPanel.hidden = true;
+        return;
+    }
 
-        // PHASE 1: Reading Question (Standard View)
+    const c = data.activeCard;
+    const lvl = data.selectedLevel;
+    const hasQuestion = !!(lvl && c[lvl]);
+    const question = hasQuestion ? c[lvl] : null;
+    const answer = hasQuestion ? getAnswer(c, lvl) : null;
+
+    // PHASE 1: Reading Question (Standard View) — skipped in Manual Buzzer mode
+    if (hasQuestion) {
         fullScreenCard.innerHTML = `
-            <button class="close-x" onclick="cancelQuestion()">✖ STOP</button>
-            <div class="host-game-display" style="display:flex; flex-direction:column; height:100vh; background:#0f172a;">
-                <div class="reading-zone" style="flex:1; display:flex; flex-direction:column; justify-content:center; align-items:center; padding:40px; text-align:center;">
-                    <div class="card-lvl-badge" style="position:static; margin-bottom:20px; background:rgba(255,255,255,0.1); padding:5px 15px; border-radius:8px;">${lvl}</div>
-                    <p class="question-to-read" style="font-size:2.5rem; font-weight:bold; color:white; line-height:1.2;">${question}</p>
+            <button class="close-x" onclick="cancelQuestion()">✕ Stop</button>
+            <div class="host-game-display">
+                <div class="reading-zone">
+                    <div class="card-lvl-badge ${getDiffClass(lvl)}">${lvl}</div>
+                    <p class="question-to-read">${question}</p>
                 </div>
-                <div class="host-secret-answer" style="background:#1e293b; padding:30px; text-align:center; border-top:4px solid #3498db;">
-                    <span style="color:#94a3b8; font-size:0.9rem; font-weight:bold; letter-spacing:2px;">SECRET ANSWER</span>
-                    <div style="font-size:2rem; color:#2ecc71; font-weight:900; margin-top:10px;">${answer}</div>
+                <div class="host-secret-answer">
+                    <div class="answer-label">Secret answer</div>
+                    <div class="answer-value">${answer}</div>
                 </div>
             </div>
         `;
-
-        // PHASE 2: Someone Buzzed (The Action Panel Fix)
-        if (data.winner) {
-            // Apply high-contrast styling to the winner panel
-            document.getElementById("activeWinnerName").innerHTML = `
-                <div style="background: #1e293b; padding: 25px; border-radius: 15px; border: 2px solid #f1c40f; box-shadow: 0 0 20px rgba(241, 196, 15, 0.2);">
-                    
-                    <div style="color: #f1c40f; font-size: 1.2rem; font-weight: 800; text-transform: uppercase; letter-spacing: 3px; margin-bottom: 5px;">
-                        🚨 TEAM BUZZED
-                    </div>
-                    <div style="font-size: 3.5rem; color: #fff; font-weight: 900; margin-bottom: 20px; text-shadow: 0 4px 10px rgba(0,0,0,0.5);">
-                        ${data.winner}
-                    </div>
-
-                    <hr style="border: 0; border-top: 1px solid rgba(255,255,255,0.1); margin: 20px 0;">
-
-                    <div style="color: #94a3b8; font-size: 0.9rem; font-weight: bold; margin-bottom: 5px;">EXPECTED ANSWER:</div>
-                    <div style="font-size: 3rem; color: #2ecc71; font-weight: 900; line-height: 1.1; margin-bottom: 25px;">
-                        ${answer}
-                    </div>
-
-                    <div style="background: rgba(0,0,0,0.2); padding: 15px; border-radius: 10px; border-left: 4px solid #3498db;">
-                        <div style="color: #3498db; font-size: 0.7rem; font-weight: bold; margin-bottom: 5px; text-align: left;">QUESTION REMINDER:</div>
-                        <div style="font-size: 1.1rem; color: #cbd5e1; font-style: italic; text-align: left;">"${question}"</div>
-                    </div>
-                </div>
-            `;
-
-            // Hide the old unused table
-            const table = gmActionPanel.querySelector(".answer-table");
-            if (table) table.style.display = "none";
-        }
-
-        const shouldShowPanel = !!data.winner || data.showPanel === true;
-        fullScreenCard.hidden = shouldShowPanel;
-        gmActionPanel.hidden = !shouldShowPanel;
-    } else {
-        fullScreenCard.hidden = true;
-        gmActionPanel.hidden = true;
     }
-}
 
-function getDiffClass(lvl) {
-    if (lvl.startsWith('E')) return 'easy';
-    if (lvl.startsWith('M')) return 'medium';
-    return 'hard';
+    // PHASE 2: Someone Buzzed — shown even in Manual Buzzer mode (no question card)
+    if (data.winner) {
+        const answerBlock = hasQuestion ? `
+                    <div class="winner-answer-label">Expected answer</div>
+                    <div class="winner-answer">${answer}</div>` : "";
+        const questionBlock = hasQuestion ? `
+                    <div class="winner-question-box">
+                        <div class="winner-question-label">Question reminder</div>
+                        <div class="winner-question-text">"${question}"</div>
+                    </div>` : "";
+
+        document.getElementById("activeWinnerName").innerHTML = `
+            <div class="winner-panel">
+                <div class="winner-eyebrow">🚨 Team buzzed</div>
+                <div class="winner-name">${data.winner}</div>
+                ${answerBlock}
+                ${questionBlock}
+            </div>
+        `;
+    }
+
+    const shouldShowPanel = !!data.winner || data.showPanel === true;
+    fullScreenCard.hidden = !hasQuestion || shouldShowPanel;
+    gmActionPanel.hidden = !shouldShowPanel;
 }
 
 function renderPlayerUI(data) {
@@ -772,7 +717,6 @@ function startLocalTimer(seconds) {
     if (!progressBar || !container) return;
 
     // This prevents the "flash" of the old bar size.
-    container.style.display = "block";
     container.hidden = false;
     progressBar.style.width = "100%";
 

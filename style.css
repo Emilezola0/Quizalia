@@ -1,70 +1,121 @@
-/* --- GLOBAL STYLES --- */
+/* =========================================================
+   QUIZALIA — DESIGN TOKENS
+   Une seule couleur d'accent (l'ambre du buzzer). Le vert et
+   le rouge ne servent qu'au verdict (correct / faux), jamais
+   à la décoration.
+   ========================================================= */
 :root {
-    --primary: #3498db;
-    --success: #2ecc71;
-    --danger: #e74c3c;
-    --warning: #f1c40f;
-    --dark-bg: #0f172a;
-    --card-bg: rgba(30, 41, 59, 0.7);
+    --ink: #10121a;
+    --surface: #1a1d29;
+    --surface-2: #232838;
+    --line: rgba(255, 255, 255, 0.08);
+    --text: #eef0f5;
+    --text-muted: #8b92a5;
+
+    --accent: #f2b632;
+    --accent-ink: #191207;
+
+    --good: #35d68a;
+    --good-ink: #07271a;
+    --bad: #ff5d5d;
+    --bad-ink: #2a0808;
+
+    --easy: #35d68a;
+    --medium: #f2b632;
+    --hard: #ff5d5d;
+
     --safe-bottom: env(safe-area-inset-bottom);
+
+    --font-display: 'Big Shoulders Display', sans-serif;
+    --font-body: 'Work Sans', system-ui, sans-serif;
+    --font-mono: 'IBM Plex Mono', monospace;
 }
 
-/* CRITICAL FIX: 
-   This ensures that when an element has the 'hidden' attribute, 
-   it is completely removed from the layout so it doesn't block clicks.
-*/
+/* [hidden] must win over any inline/flex display so toggling
+   visibility can never leave a clickable ghost element behind. */
 [hidden] {
     display: none !important;
 }
 
+* {
+    box-sizing: border-box;
+}
+
 body {
-    font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
+    font-family: var(--font-body);
     text-align: center;
-    background: radial-gradient(circle at top, #1e293b, var(--dark-bg));
-    color: white;
+    background: var(--ink);
+    color: var(--text);
     margin: 0;
     padding: 20px;
     min-height: 100vh;
-    transition: background-color 0.3s ease;
+    transition: background-color 0.2s ease;
     overflow-x: hidden;
     touch-action: manipulation;
-    /* Prevents double-tap to zoom delay */
     -webkit-tap-highlight-color: transparent;
-    /* Removes the ugly blue box on tap */
 }
 
-/* Fix for iOS input zoom */
+/* iOS zooms in automatically if font-size < 16px */
 input,
 select,
 textarea {
     font-size: 16px !important;
-    /* iOS zooms in automatically if font-size < 16px */
 }
 
 h1 {
-    font-size: 2.5rem;
+    font-family: var(--font-display);
+    font-weight: 900;
+    font-size: clamp(2.2rem, 6vw, 3rem);
     text-transform: uppercase;
-    letter-spacing: 2px;
+    letter-spacing: 0.02em;
     margin-bottom: 30px;
-    text-shadow: 0 0 10px rgba(52, 152, 219, 0.5);
+    text-wrap: balance;
 }
 
-/* --- CARDS & LAYOUT --- */
-.card {
-    background: var(--card-bg);
-    backdrop-filter: blur(12px);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    padding: 30px;
-    border-radius: 24px;
-    max-width: 450px;
-    margin: 20px auto;
-    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.4);
+h1 .accent {
+    color: var(--accent);
 }
 
 hr {
     border: 0;
-    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    border-top: 1px solid var(--line);
     margin: 20px 0;
+}
+
+/* --- CARDS & LAYOUT --- */
+.card {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    padding: 30px;
+    border-radius: 20px;
+    max-width: 450px;
+    margin: 20px auto;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.35);
+}
+
+.card h3 {
+    margin-top: 0;
+    font-size: 1.05rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--accent);
+}
+
+#lobbyCode.copyable {
+    cursor: pointer;
+    border-bottom: 1px dashed var(--text-muted);
+}
+
+.settings-mini {
+    margin: 10px auto;
+    max-width: 400px;
+}
+
+.status-text {
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    letter-spacing: 0.04em;
 }
 
 /* --- INPUTS & SELECTS --- */
@@ -72,9 +123,9 @@ input {
     padding: 14px;
     margin: 10px 0;
     border-radius: 12px;
-    border: 2px solid rgba(255, 255, 255, 0.1);
-    background: rgba(15, 23, 42, 0.6);
-    color: white;
+    border: 2px solid var(--line);
+    background: var(--ink);
+    color: var(--text);
     width: 90%;
     font-size: 1rem;
     transition: border-color 0.2s;
@@ -82,60 +133,59 @@ input {
 
 input:focus {
     outline: none;
-    border-color: var(--primary);
+    border-color: var(--accent);
 }
 
 /* --- BUTTONS --- */
 button {
     padding: 14px 28px;
     cursor: pointer;
-    background: var(--primary);
-    color: white;
+    background: var(--accent);
+    color: var(--accent-ink);
     border: none;
     border-radius: 12px;
-    font-weight: bold;
+    font-family: var(--font-body);
+    font-weight: 700;
     font-size: 1rem;
-    transition: all 0.2s;
-    box-shadow: 0 4px 15px rgba(52, 152, 219, 0.3);
+    transition: filter 0.15s, transform 0.1s;
 }
 
 button:hover {
-    filter: brightness(1.1);
-    transform: translateY(-2px);
+    filter: brightness(1.08);
 }
 
 button:active {
-    transform: translateY(0);
+    transform: translateY(1px);
 }
 
-/* --- THE BUZZER (PRO 3D LOOK) --- */
+button:focus-visible {
+    outline: 2px solid var(--text);
+    outline-offset: 2px;
+}
+
+/* --- THE BUZZER --- */
 #buzzBtn {
-    width: 220px;
-    height: 220px;
-    font-size: 2.2rem;
+    width: min(70vw, 250px);
+    height: min(70vw, 250px);
+    font-family: var(--font-display);
     font-weight: 900;
+    font-size: clamp(1.5rem, 8vw, 2.2rem);
+    letter-spacing: 0.02em;
     text-transform: uppercase;
     border-radius: 50%;
-    border: none;
     display: block;
-    margin: 40px auto;
-    cursor: pointer;
-    user-select: none;
-    background: radial-gradient(circle at 35% 35%, #ff6b6b, #c0392b);
-    box-shadow: 0 15px 0 #962d22, 0 25px 40px rgba(0, 0, 0, 0.5);
-    transition: all 0.1s ease;
-    width: min(70vw, 250px);
-    /* Responsive width: 70% of screen or max 250px */
-    height: min(70vw, 250px);
     margin: 20px auto;
-    font-size: clamp(1.5rem, 8vw, 2.2rem);
+    user-select: none;
     -webkit-user-select: none;
-    /* Prevents text selection while tapping fast */
+    background: radial-gradient(circle at 32% 30%, #ffd76b, var(--accent) 60%, #c98d16 100%);
+    color: var(--accent-ink);
+    box-shadow: 0 15px 0 #a9740f, 0 25px 40px rgba(0, 0, 0, 0.5);
+    transition: transform 0.1s ease, box-shadow 0.1s ease;
 }
 
 #buzzBtn:active:not(:disabled) {
     transform: translateY(10px);
-    box-shadow: 0 5px 0 #962d22, 0 10px 20px rgba(0, 0, 0, 0.5);
+    box-shadow: 0 5px 0 #a9740f, 0 10px 20px rgba(0, 0, 0, 0.5);
 }
 
 #buzzBtn:disabled {
@@ -151,15 +201,14 @@ body:has(.full-overlay:not([hidden])) {
     transition: none !important;
 }
 
-/* --- SLOT MACHINE --- */
+/* --- SLOT MACHINE (theme wheel) --- */
 #slotMachineOverlay {
     position: fixed;
     top: 0;
     left: 0;
     width: 100vw;
     height: 100vh;
-    background-color: #030712 !important;
-    background: radial-gradient(circle, #1e293b 0%, #030712 100%);
+    background: radial-gradient(circle, var(--surface) 0%, var(--ink) 100%);
     z-index: 9999;
     display: flex;
     flex-direction: column;
@@ -177,31 +226,25 @@ body:has(.full-overlay:not([hidden])) {
     -webkit-mask-image: linear-gradient(to bottom, transparent, black 35%, black 65%, transparent);
 }
 
-/* Neon Selector Window */
 .slot-machine-wrap::after {
     content: "";
     position: absolute;
     top: 50%;
+    left: 50%;
     transform: translate(-50%, -50%);
     height: 30vh;
-    left: 50%;
     width: 90%;
     max-width: 1000px;
-    border: 6px solid var(--warning);
+    border: 4px solid var(--accent);
     border-radius: 24px;
-    box-shadow: 0 0 50px var(--warning), inset 0 0 30px var(--warning);
-    z-index: 10;
+    box-shadow: 0 0 50px rgba(242, 182, 50, 0.5), inset 0 0 30px rgba(242, 182, 50, 0.25);
     pointer-events: none;
-
     z-index: 5;
-    /* Lower this slightly */
-    pointer-events: none;
 }
 
 .slot-reel {
     display: flex;
     flex-direction: column;
-    /* Forces the phone to prioritize rendering this container */
     transform: translateZ(0);
     will-change: transform;
 }
@@ -212,24 +255,20 @@ body:has(.full-overlay:not([hidden])) {
     display: flex;
     align-items: center;
     justify-content: center;
+    font-family: var(--font-display);
     font-weight: 900;
-    color: white;
+    color: var(--text);
     font-size: clamp(2rem, 10vw, 6rem);
     text-transform: uppercase;
-    letter-spacing: 4px;
+    letter-spacing: 0.04em;
     text-shadow: 0 5px 15px rgba(0, 0, 0, 0.5);
-
-    /* ADD THESE FOR MOBILE STABILITY: */
     backface-visibility: hidden;
     -webkit-backface-visibility: hidden;
     transform: translateZ(0);
-
     position: relative;
     z-index: 2;
-    /* Ensure text has a defined layer */
 }
 
-/* --- VFX --- */
 .spinning-blur {
     filter: blur(1px);
 }
@@ -242,7 +281,7 @@ body:has(.full-overlay:not([hidden])) {
 
     0%,
     100% {
-        background-color: #030712;
+        background-color: var(--ink);
     }
 
     50% {
@@ -250,181 +289,138 @@ body:has(.full-overlay:not([hidden])) {
     }
 }
 
-/* --- GRID & CARDS (YOUR ORIGINAL) --- */
-.grid-layout {
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: 20px;
-    width: 95%;
-    max-width: 1200px;
-    padding: 0 10px;
-    box-sizing: border-box;
-    margin: auto;
-}
-
-.box {
-    padding: 15px;
-    border-radius: 18px;
-    color: white;
-    text-align: left;
-    min-height: 140px;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
-    word-wrap: break-word;
-    overflow-wrap: break-word;
-}
-
-.easy {
-    background: linear-gradient(135deg, #27ae60, #2ecc71);
-}
-
-.medium {
-    background: linear-gradient(135deg, #d35400, #e67e22);
-}
-
-.hard {
-    background: linear-gradient(135deg, #c0392b, #e74c3c);
-}
-
-/* RESPONSIVE TEXT */
-@media (max-width: 600px) {
-    .grid-layout {
-        grid-template-columns: 1fr !important;
-        /* Force single column */
-        width: 100%;
-        padding: 0 5px;
-    }
-
-    .box {
-        padding: 15px;
-        font-size: 0.95rem;
-        /* Slightly smaller font to fit more words */
-    }
-
-    .box p,
-    .box span {
-        font-size: 1rem;
-        /* Adjust specifically for the question and answer */
-    }
-
-    .spinning-blur {
-        /* Mobile GPUs struggle with blur filters during fast movement */
-        filter: none !important;
-        opacity: 0.9;
-        /* Use slight transparency instead of blur to simulate speed */
-    }
-
-    .slot-machine-wrap {
-        -webkit-mask-image: linear-gradient(to bottom,
-                transparent,
-                black 30%,
-                black 70%,
-                transparent);
-        mask-image: linear-gradient(to bottom,
-                transparent,
-                black 30%,
-                black 70%,
-                transparent);
-    }
-
-    .slot-card {
-        /* Use clamp to ensure it never gets so big it breaks the layout */
-        font-size: clamp(1.5rem, 6vw, 4rem);
-        height: min(30vh, 200px);
-        display: flex;
-        transform: translate3d(0, 0, 0);
-        will-change: transform;
-        align-items: center;
-        justify-content: center;
-        /* Ensure text doesn't wrap and disappear */
-        white-space: nowrap;
-    }
-
-    .full-overlay {
-        padding: 20px 10px;
-        /* Tighter padding for more content room */
-    }
-}
-
-.slot-pointer {
-    position: absolute;
-    right: 20px;
-    top: 50%;
-    transform: translateY(-50%);
-    font-size: 3rem;
-    color: var(--warning);
-    z-index: 10;
-    text-shadow: 0 0 10px black;
-}
-
-/* --- OVERLAYS --- */
+/* --- FULL SCREEN: HOST READING VIEW --- */
 .full-overlay {
     position: fixed;
     top: 0;
     left: 0;
     width: 100vw;
     height: 100vh;
-    background: rgba(15, 23, 42, 0.98);
+    background: var(--ink);
     z-index: 2000;
-    padding: 20px;
+    padding: 0;
     box-sizing: border-box;
-
-    /* SCROLL FIXES */
-    display: block;
-    /* Changed from flex to allow natural scrolling */
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
-    /* Smooth scroll for iOS */
-    padding-bottom: 100px;
 }
 
-/* To keep the content centered when it IS short enough */
-.full-overlay .card {
-    margin: 40px auto;
-    /* Centers the card and gives top/bottom space */
-    max-width: 90%;
+.host-game-display {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
 }
 
-/* --- HOST QUESTION GRID --- */
-.grid-layout {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-    /* Better responsiveness */
-    gap: 20px;
-    width: 95%;
-    max-width: 1200px;
+.reading-zone {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    padding: 40px 24px;
+    text-align: center;
 }
 
-/* --- BUTTON SPACING FIX --- */
-/* 1. Modal Container: Remove padding to let Header touch the edges */
+.card-lvl-badge {
+    display: inline-block;
+    margin-bottom: 20px;
+    background: var(--surface-2);
+    border: 1px solid var(--line);
+    padding: 5px 16px;
+    border-radius: 8px;
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+    letter-spacing: 0.08em;
+    color: var(--text-muted);
+}
+
+.card-lvl-badge.easy {
+    color: var(--easy);
+    border-color: var(--easy);
+}
+
+.card-lvl-badge.medium {
+    color: var(--medium);
+    border-color: var(--medium);
+}
+
+.card-lvl-badge.hard {
+    color: var(--hard);
+    border-color: var(--hard);
+}
+
+.question-to-read {
+    font-family: var(--font-display);
+    font-weight: 800;
+    font-size: clamp(1.6rem, 5vw, 2.6rem);
+    line-height: 1.2;
+    color: var(--text);
+    max-width: 20ch;
+    text-wrap: balance;
+}
+
+.host-secret-answer {
+    background: var(--surface);
+    padding: 28px;
+    text-align: center;
+    border-top: 4px solid var(--accent);
+}
+
+.answer-label {
+    color: var(--text-muted);
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+}
+
+.answer-value {
+    font-family: var(--font-display);
+    font-size: 1.8rem;
+    color: var(--good);
+    font-weight: 800;
+    margin-top: 8px;
+}
+
+/* Close Button stays on top of everything */
+.close-x {
+    position: fixed;
+    top: 15px;
+    right: 15px;
+    z-index: 9999;
+    background: var(--surface-2);
+    color: var(--text);
+    border: 1px solid var(--line);
+}
+
+.close-x:active {
+    transform: translateY(2px);
+}
+
+/* --- THEME LIST MODAL / FICHE SELECTOR --- */
 #themeListModal {
     position: fixed;
     top: 0;
     left: 0;
-    width: 100vw !important;
-    height: 100vh !important;
-    background: #0f172a;
-    /* Your dark background color */
-    margin: 0 !important;
-    padding: 0 !important;
+    width: 100vw;
+    height: 100vh;
+    background: var(--ink);
+    margin: 0;
+    padding: 0;
     overflow-y: auto;
-    /* Allows scrolling of the list */
     display: flex;
     flex-direction: column;
+    z-index: 2000;
 }
 
 #themeButtonsContainer {
     flex: 1;
-    /* This forces the container to grow and fill all available space */
     display: flex;
     flex-direction: column;
     min-height: 100vh;
-    /* Ensures it's at least as tall as the screen */
-    width: 100% !important;
-    background: #0f172a;
-    /* Match the modal background */
+    width: 100%;
+    background: var(--ink);
 }
 
-/* Personnalisation du scrollbar pour le style Cyberpunk */
 #themeButtonsContainer::-webkit-scrollbar {
     width: 8px;
 }
@@ -435,105 +431,260 @@ body:has(.full-overlay:not([hidden])) {
 }
 
 #themeButtonsContainer::-webkit-scrollbar-thumb {
-    background: var(--primary);
+    background: var(--accent);
     border-radius: 10px;
 }
 
-/* Style des boutons DANS la liste de sélection */
 #themeButtonsContainer .btn-gm {
     margin: 0;
-    /* On retire les marges automatiques */
     padding: 20px 10px;
     height: auto;
     font-size: 0.9rem;
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: var(--surface);
+    border: 1px solid var(--line);
     box-shadow: none;
-    /* On retire l'effet 3D lourd pour la liste */
 }
 
 #themeButtonsContainer .btn-gm:hover {
-    background: var(--primary);
-    transform: scale(1.05);
+    background: var(--surface-2);
+    transform: scale(1.02);
 }
 
 .theme-controls {
     display: flex;
     flex-wrap: wrap;
-    /* Allows buttons to wrap to next line if screen is small */
     justify-content: center;
     gap: 15px;
-    /* Adds space between buttons */
     margin-bottom: 20px;
 }
 
-/* Add this if you want the themes to sit in a scrolling box instead of a dropdown */
-.theme-scroll-container {
-    max-height: 200px;
-    overflow-y: auto;
-    border-radius: 12px;
-    background: rgba(0, 0, 0, 0.2);
-    padding: 10px;
+.fiche-nav-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    background: var(--surface);
+    padding: 15px 70px 15px 20px;
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+    width: 100%;
+    box-sizing: border-box;
+    border-bottom: 1px solid var(--line);
 }
 
-/* --- TEXT BOUNDS FIX --- */
-.box {
-    padding: 20px;
-    border-radius: 18px;
-    font-weight: bold;
-    color: white;
-    text-align: left;
+.fiche-info h2 {
+    margin: 0;
+    font-size: 1.1rem;
+    color: var(--text);
+    font-family: var(--font-display);
+    letter-spacing: 0.02em;
+}
 
-    /* CRITICAL FIXES: */
-    word-wrap: break-word;
-    overflow-wrap: break-word;
-    word-break: break-word;
-    /* Extra safety for long strings */
-    height: auto;
-    /* Let it grow with text */
-    min-height: 140px;
-    /* Minimum size, but can get taller */
+.fiche-counter {
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    letter-spacing: 0.06em;
+}
+
+.fiche-bottom-nav {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    background: var(--surface);
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    padding: 15px 0;
+    border-top: 1px solid var(--line);
+    z-index: 1000;
+    box-shadow: 0 -5px 15px rgba(0, 0, 0, 0.4);
+}
+
+.btn-nav-round {
+    background: var(--surface-2);
+    color: var(--text);
+    border: 1px solid var(--line);
+    padding: 12px 20px;
+    font-size: 0.85rem;
+}
+
+.btn-nav-round:hover {
+    background: var(--accent);
+    color: var(--accent-ink);
+}
+
+.fiche-label {
+    color: var(--text);
+    font-weight: 700;
+    font-size: 0.85rem;
+    letter-spacing: 0.04em;
+}
+
+/* --- QUESTION SELECTION LIST --- */
+.vertical-questions-list {
+    flex-grow: 1;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+    gap: 16px;
+    padding: 20px;
+    box-sizing: border-box;
+    padding-bottom: 120px;
+}
+
+.host-selection-card {
+    position: relative;
     display: flex;
     flex-direction: column;
+    padding: 20px;
+    border-radius: 14px;
+    border: 1px solid var(--line);
+    border-left: 3px solid var(--line);
+    background: var(--surface);
+    text-align: left;
+    cursor: pointer;
+    transition: transform 0.15s ease, border-color 0.15s ease, background 0.15s ease;
 }
 
-.box span {
-    display: inline-block;
-    /* Helps the answer text wrap correctly */
-    word-break: break-word;
+.host-selection-card.easy {
+    border-left-color: var(--easy);
 }
 
-.box p {
-    margin: 10px 0;
+.host-selection-card.medium {
+    border-left-color: var(--medium);
+}
+
+.host-selection-card.hard {
+    border-left-color: var(--hard);
+}
+
+.host-selection-card:hover {
+    transform: translateY(-2px);
+    background: var(--surface-2);
+}
+
+.host-selection-card .card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+}
+
+.host-selection-card .card-hint {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-muted);
+}
+
+.qa-label {
+    color: var(--text-muted);
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-bottom: 4px;
+}
+
+.qa-question {
     font-size: 1.1rem;
-    font-weight: 400;
+    line-height: 1.4;
+    color: var(--text);
+    margin-bottom: 14px;
 }
 
-.box hr {
-    margin: 10px 0;
-    opacity: 0.3;
+.qa-answer-box {
+    background: var(--surface-2);
+    padding: 10px 12px;
+    border-radius: 8px;
+    border-left: 3px solid currentColor;
+    font-style: italic;
+    color: var(--text);
 }
 
-/* Difficulty Colors */
-.easy {
-    background: linear-gradient(135deg, #27ae60, #2ecc71);
+@media (max-width: 850px) {
+    .vertical-questions-list {
+        grid-template-columns: 1fr;
+    }
 }
 
-.medium {
-    background: linear-gradient(135deg, #d35400, #e67e22);
+/* --- GAME MASTER ACTION PANEL / WINNER CARD --- */
+#gmActionPanel {
+    background: transparent;
+    box-shadow: none;
+    border: none;
+    max-width: 600px;
 }
 
-.hard {
-    background: linear-gradient(135deg, #c0392b, #e74c3c);
+.winner-panel {
+    background: linear-gradient(180deg, var(--surface-2), var(--surface));
+    border: 1px solid rgba(242, 182, 50, 0.35);
+    border-radius: 20px;
+    padding: 30px 25px;
+    box-shadow: 0 20px 40px -20px rgba(242, 182, 50, 0.25);
 }
 
-/* --- GAME MASTER CONTROLS --- */
-#activeWinnerName {
-    font-size: 4rem;
-    color: var(--warning);
-    margin: 20px 0;
+.winner-eyebrow {
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 8px;
+}
+
+.winner-name {
+    font-family: var(--font-display);
     font-weight: 900;
-    text-shadow: 0 0 30px rgba(241, 196, 15, 0.6);
+    font-size: clamp(2rem, 8vw, 3.2rem);
+    color: var(--text);
+    line-height: 1;
+    margin-bottom: 20px;
+    text-wrap: balance;
+}
+
+.winner-answer-label {
+    color: var(--text-muted);
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+}
+
+.winner-answer {
+    font-family: var(--font-display);
+    font-size: clamp(1.8rem, 6vw, 2.6rem);
+    color: var(--good);
+    font-weight: 800;
+    line-height: 1.1;
+    margin-bottom: 24px;
+}
+
+.winner-question-box {
+    background: rgba(0, 0, 0, 0.2);
+    padding: 15px;
+    border-radius: 10px;
+    border-left: 3px solid var(--accent);
+    text-align: left;
+}
+
+.winner-question-label {
+    color: var(--accent);
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    margin-bottom: 5px;
+}
+
+.winner-question-text {
+    font-size: 1.05rem;
+    color: var(--text-muted);
+    font-style: italic;
 }
 
 .gm-controls {
@@ -541,160 +692,85 @@ body:has(.full-overlay:not([hidden])) {
     justify-content: center;
     align-items: center;
     gap: 12px;
-    /* Consistent space between buttons */
-    margin: 20px auto;
-    width: 95%;
-    /* Prevents touching the screen edges */
-    max-width: 600px;
-    /* Keeps them grouped in the center */
+    margin: 20px auto 0;
+    width: 100%;
     flex-wrap: nowrap;
-    /* Keeps them on one line on desktop */
 }
 
 .btn-gm {
     flex: 1;
-    /* This makes all buttons exactly the same width! */
     padding: 18px 5px;
-    /* Vertical padding for height, minimal side padding */
     border-radius: 14px;
     font-size: 1rem;
-    font-weight: bold;
+    font-weight: 700;
     text-transform: uppercase;
+    letter-spacing: 0.02em;
     border: none;
     cursor: pointer;
     transition: transform 0.1s, filter 0.2s;
     display: flex;
     justify-content: center;
     align-items: center;
+    gap: 8px;
     min-width: 0;
-    /* Allows flex to shrink them if needed */
-}
-
-/* Button Colors with 3D Depth */
-.green {
-    background: var(--success);
-    box-shadow: 0 5px 0 #27ae60;
-}
-
-.orange {
-    background: #e67e22;
-    box-shadow: 0 5px 0 #d35400;
-}
-
-.gray {
-    background: #64748b;
-    box-shadow: 0 5px 0 #475569;
 }
 
 .btn-gm:active {
     transform: translateY(3px);
-    box-shadow: 0 2px 0 rgba(0, 0, 0, 0.2);
 }
 
-/* Mobile responsive buttons */
-@media (max-width: 480px) {
-    #gmActionPanel {
-        /* This creates a 'blank' space at the bottom of the card 
-           so the table can be scrolled into view above the buttons */
-        padding-bottom: 180px !important;
-    }
+.btn-gm .icon {
+    font-weight: 900;
+}
 
+.btn-gm.green {
+    background: var(--good);
+    color: var(--good-ink);
+    box-shadow: 0 5px 0 #1f9c62;
+}
+
+.btn-gm.orange {
+    background: var(--bad);
+    color: #fff;
+    box-shadow: 0 5px 0 #c23f3f;
+}
+
+.btn-gm.orange .icon {
+    color: #fff;
+}
+
+.btn-gm.gray {
+    background: var(--surface-2);
+    color: var(--text);
+    box-shadow: 0 5px 0 #10131c;
+    border: 1px solid var(--line);
+}
+
+@media (max-width: 480px) {
     .gm-controls {
         display: grid;
         grid-template-columns: 1fr 1fr;
         gap: 10px;
-
-        /* CHANGE THESE: */
-        position: relative;
-        /* Change from fixed to relative */
-        margin-top: 20px;
-        /* Add space between table and buttons */
-        background: none;
-        /* Remove the dark background bar */
-        width: 100%;
     }
 
     .btn-gm {
         padding: 15px 5px;
-        /* Taller tap targets */
         font-size: 0.85rem;
     }
 
-    /* Add padding to the container so the bottom buttons don't cover content */
-    #hostView {
-        padding-bottom: 20px !important;
-        /* Reset the huge padding */
-    }
-
     .card {
-        padding: 15px;
-        /* Reduced from 30px to give the table more horizontal room */
-    }
-
-    .answer-table {
-        width: 100%;
-        table-layout: fixed;
-        /* Forces cells to stay equal width */
-        word-wrap: break-word;
-        /* Prevents long text from pushing table off-screen */
-    }
-
-    .answer-table td {
-        font-size: 0.8rem;
-        /* Slightly smaller font for better fit */
-        padding: 8px 4px;
+        padding: 18px;
     }
 }
 
-/* --- TABLE --- */
-.answer-table {
-    width: 100%;
-    border-collapse: separate;
-    border-spacing: 5px;
-    margin-top: 20px;
-    background: rgba(0, 0, 0, 0.2);
-    border-radius: 12px;
-    padding: 10px;
-    /* This ensures the table can't push past the card width */
-    table-layout: fixed;
-}
-
-.answer-table th {
-    padding: 10px 5px;
-    border-radius: 6px;
-    color: white;
-    text-transform: uppercase;
-    font-size: 0.75rem;
-    width: 40px;
-    /* Keeps the labels (E1, M1) small and consistent */
-}
-
-.answer-table td {
-    padding: 10px;
-    background: rgba(255, 255, 255, 0.05);
-    border-radius: 6px;
-    font-size: 0.85rem;
-    text-align: left;
-
-    /* CRITICAL FIXES FOR MOBILE VISIBILITY: */
-    white-space: normal;
-    /* Allows text to wrap to multiple lines */
-    overflow: visible;
-    /* Shows all text */
-    word-wrap: break-word;
-    /* Breaks long words if necessary */
-    overflow-wrap: break-word;
-    vertical-align: top;
-}
-
-/* --- PLAYER LIST & MISC --- */
+/* --- PLAYER LIST --- */
 #playersList {
     list-style: none;
     padding: 0;
 }
 
 #playersList li {
-    background: rgba(255, 255, 255, 0.05);
+    background: var(--surface-2);
     margin-bottom: 8px;
     padding: 12px 20px;
     border-radius: 12px;
@@ -705,178 +781,47 @@ body:has(.full-overlay:not([hidden])) {
 
 #playersList li::before {
     content: "●";
-    color: var(--success);
+    color: var(--good);
     margin-right: 15px;
 }
 
-#progressBarContainer {
-    background: rgba(0, 0, 0, 0.4);
-    border-radius: 50px;
-    padding: 5px;
-    width: 90%;
-    margin: 10px auto;
-}
-
-#progressBar {
-    height: 14px;
-    border-radius: 50px;
-    background: linear-gradient(90deg, #2ecc71, #f1c40f, #e74c3c);
-    width: 100%;
-}
-
-/* --- BUZZER STATE OVERRIDES --- */
-
-.buzzer-announcement {
-    font-size: 1.5rem;
-    font-weight: bold;
-    text-align: center;
-    margin-bottom: 20px;
-    height: 2rem;
-    /* Keeps layout stable when text is empty */
-    color: white;
-    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
-}
-
-/* The 'locked-out' state for everyone else */
-body.buzzer-locked {
-    background: radial-gradient(circle, #7f1d1d, #450a0a) !important;
-    transition: background 0.2s ease-in-out;
-}
-
-/* The 'active' state for the person who buzzed */
-body.buzzer-winner {
-    background: radial-gradient(circle, #065f46, #064e3b) !important;
-    transition: background 0.2s ease-in-out;
-}
-
-/* Ensure the background doesn't repeat or look broken */
-body.buzzer-locked,
-body.buzzer-winner {
-    background-attachment: fixed;
-}
-
-/* Background state colors for players */
-body.winner-green {
-    background: #064e3b !important;
-}
-
-body.loser-red {
-    background: #450a0a !important;
-}
-
-@keyframes blink {
-    50% {
-        opacity: 0;
-    }
-}
-
-.slot-pointer {
-    animation: blink 0.5s infinite;
-}
-
-/* --- CUSTOM SELECT STYLING --- */
-.custom-select {
-    padding: 16px 20px;
-    /* More breathing room */
-    margin: 15px 0;
-    border-radius: 16px;
-    border: 2px solid rgba(255, 255, 255, 0.2);
-    background: rgba(15, 23, 42, 0.9);
-    color: white;
-    width: 100%;
-    /* Full width of its container */
-    max-width: 400px;
-    font-size: 1.1rem;
-    font-weight: 500;
-    cursor: pointer;
-    appearance: none;
-    background-image: url("data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
-    background-repeat: no-repeat;
-    background-position: right 20px center;
-    background-size: 18px;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
-}
-
-/* This targets the dropdown list in some browsers */
-.custom-select option {
-    background: #1e293b;
-    color: white;
-    padding: 12px;
-}
-
-.custom-select:focus {
-    outline: none;
-    border-color: var(--primary);
-    box-shadow: 0 0 10px rgba(52, 152, 219, 0.3);
-}
-
-.sound-card h3 {
-    margin-top: 0;
-    font-size: 1.1rem;
-    color: var(--primary);
-    text-transform: uppercase;
-    letter-spacing: 1px;
-}
-
-/* --- NEON PRO PROGRESS BAR --- */
+/* --- TIMER / PROGRESS BAR --- */
 #timerContainer {
     width: 100%;
     margin: 30px 0;
-    display: block;
     position: relative;
-    /* Or 'sticky' if you want it to follow scroll */
     z-index: 1000;
-    /* High number ensures it stays on top of the Theme Frame */
 }
 
 #progressBarContainer {
-    min-height: 18px;
-    /* Prevents collapsing on some mobile browsers */
-    background: rgba(15, 23, 42, 0.8);
-    /* Darker base for neon pop */
-    border: 1px solid rgba(255, 255, 255, 0.2);
+    background: var(--ink);
+    border: 1px solid var(--line);
     border-radius: 50px;
     padding: 2px;
-    /* Thinner padding for a sleeker look */
     width: 90%;
     max-width: 500px;
-    margin: 0 auto;
     height: 18px;
-    /* Slightly sleeker */
+    margin: 0 auto;
     position: relative;
     overflow: visible;
-    /* Changed to visible so glow can spread out */
-    box-shadow: 0 0 15px rgba(0, 0, 0, 0.5), inset 0 0 10px rgba(0, 0, 0, 0.8);
+    box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.6);
 }
 
 #progressBar {
     height: 100%;
     width: 100%;
     border-radius: 50px;
-    /* Neon Cyberpunk Gradient */
-    background: linear-gradient(90deg, #00f2fe 0%, #4facfe 30%, #f093fb 60%, #f5576c 100%);
-    background-size: 200% auto;
+    background: linear-gradient(90deg, var(--good) 0%, var(--medium) 100%);
     transition: width 0.1s linear;
     position: relative;
-
-    /* THE NEON GLOW: Using filter instead of box-shadow for better "light" spread */
-    filter: drop-shadow(0 0 8px rgba(79, 172, 254, 0.8));
 }
 
-/* Energy Scan Effect: A white light that moves across the bar */
 #progressBar::after {
     content: "";
     position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
+    inset: 0;
     border-radius: 50px;
-    background: linear-gradient(90deg,
-            transparent 0%,
-            rgba(255, 255, 255, 0.4) 50%,
-            transparent 100%);
+    background: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.35) 50%, transparent 100%);
     background-size: 200% 100%;
     animation: neonScan 2s infinite linear;
 }
@@ -891,248 +836,151 @@ body.loser-red {
     }
 }
 
-/* Danger State: High-intensity Red Glow */
 .timer-low {
-    filter: drop-shadow(0 0 12px #ff004c) !important;
-    background: linear-gradient(90deg, #ff0844 0%, #ffb199 100%) !important;
+    background: linear-gradient(90deg, var(--hard) 0%, #ff9a76 100%) !important;
 }
 
-@keyframes pulse-red {
-    from {
-        box-shadow: 0 0 10px #e74c3c;
-    }
-
-    to {
-        box-shadow: 0 0 25px #ff0000;
-    }
-}
-
-/* --- IMPROVED HOST VIEW LAYOUT --- */
-
-/* Expand the Card to allow more room */
+/* --- HOST VIEW LAYOUT --- */
 #hostView .theme-controls.card {
-    min-height: 420px;
+    min-height: 380px;
     display: flex;
     flex-direction: column;
     justify-content: space-between;
     padding: 25px;
     max-width: 500px;
-    /* Slightly wider for the grid */
-}
-
-/* 2-Column Grid for Buttons */
-.host-button-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 15px;
-    width: 100%;
-}
-
-/* Reset buttons inside grid to look consistent */
-.host-button-grid button {
-    margin: 0;
-    width: 100%;
-    padding: 15px 5px;
-    font-size: 0.9rem;
-}
-
-/* Horizontal Neon Timer Section */
-.timer-section {
-    margin-top: auto;
-    padding-top: 20px;
 }
 
 .timer-separator {
     height: 1px;
-    background: linear-gradient(90deg, transparent, var(--primary), transparent);
-    margin-bottom: 20px;
-    opacity: 0.6;
+    background: linear-gradient(90deg, transparent, var(--accent), transparent);
+    margin: 20px 0;
+    opacity: 0.5;
 }
 
 .timer-config {
     display: flex;
-    flex-direction: row;
-    /* Horizontal layout */
     justify-content: center;
     align-items: center;
     gap: 15px;
 }
 
-.neon-label {
+.timer-config span {
+    font-family: var(--font-mono);
     font-size: 0.75rem;
-    font-weight: bold;
-    color: #8be9fd;
-    letter-spacing: 1.5px;
+    letter-spacing: 0.1em;
+    color: var(--text-muted);
     text-transform: uppercase;
-    text-shadow: 0 0 10px rgba(139, 233, 253, 0.4);
-    white-space: nowrap;
 }
 
-/* Sleek Neon Select */
 .neon-select {
-    background: #0f172a;
-    color: white;
-    border: 1px solid var(--primary);
-    border-radius: 6px;
+    background: var(--ink);
+    color: var(--text);
+    border: 1px solid var(--accent);
+    border-radius: 8px;
     padding: 6px 15px;
-    font-weight: bold;
+    font-weight: 700;
+    font-family: var(--font-mono);
     cursor: pointer;
+}
+
+/* --- CUSTOM SELECT --- */
+.custom-select {
+    padding: 16px 20px;
+    margin: 15px 0;
+    border-radius: 14px;
+    border: 2px solid var(--line);
+    background: var(--ink);
+    color: var(--text);
+    width: 100%;
+    max-width: 400px;
+    font-size: 1.05rem;
+    font-weight: 500;
+    cursor: pointer;
+    appearance: none;
+    background-image: url("data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%238b92a5' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 18px center;
+    background-size: 18px;
+    transition: border-color 0.2s;
+}
+
+.custom-select option {
+    background: var(--surface);
+    color: var(--text);
+}
+
+.custom-select:focus {
     outline: none;
-    box-shadow: 0 0 10px rgba(52, 152, 219, 0.2);
-    transition: 0.3s;
+    border-color: var(--accent);
 }
 
-.neon-select:hover {
-    border-color: #8be9fd;
-    box-shadow: 0 0 15px rgba(139, 233, 253, 0.5);
-}
-
-/* THEME FRAME */
+/* --- THEME FRAME (player header) --- */
 .theme-frame {
-    background: rgba(255, 255, 255, 0.1);
-    border: 2px solid rgba(255, 255, 255, 0.3);
-    border-radius: 12px;
-    padding: 10px;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 12px;
     margin: 10px auto;
     width: 90%;
     text-align: center;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
 }
 
 .theme-label {
+    font-family: var(--font-mono);
     font-size: 0.7rem;
-    color: #aaa;
-    display: block;
+    color: var(--text-muted);
+    letter-spacing: 0.1em;
     text-transform: uppercase;
-    letter-spacing: 2px;
 }
 
 #playerThemeDisplayTop {
+    font-family: var(--font-display);
     font-size: 1.6rem;
     font-weight: 800;
-    color: #fff;
-    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+    color: var(--text);
 }
 
+/* --- BUZZER STATE --- */
 .buzzer-announcement {
+    font-family: var(--font-display);
+    font-size: 1.4rem;
+    font-weight: 800;
+    text-align: center;
     height: 3rem;
     margin-top: 15px;
-    font-size: 1.4rem;
-    font-weight: bold;
+    color: var(--text);
 }
 
-/* --- MODAL OVERRIDE --- */
-#themeListModal {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100vw !important;
-    /* Force full viewport width */
-    height: 100vh !important;
-    background: #0f172a;
-    z-index: 2000;
-    padding: 0 !important;
-    /* Remove padding to let header touch edges */
-    margin: 0 !important;
-    box-sizing: border-box;
-    overflow-y: auto;
+body.buzzer-locked {
+    background: radial-gradient(circle, #3a1414, var(--ink)) !important;
+    background-attachment: fixed;
+    transition: background 0.2s ease-in-out;
 }
 
-/* --- THE STICKY HEADER --- */
-.fiche-nav-header {
-    display: flex !important;
-    justify-content: center;
-    /* Center the title */
-    align-items: center;
-    background: #1e293b;
-    padding: 15px;
-    position: sticky;
-    top: 0;
-    z-index: 1000;
-    width: 100% !important;
-    box-sizing: border-box;
-    border-bottom: 2px solid rgba(255, 255, 255, 0.1);
+body.buzzer-winner {
+    background: radial-gradient(circle, #103d29, var(--ink)) !important;
+    background-attachment: fixed;
+    transition: background 0.2s ease-in-out;
 }
 
-.fiche-bottom-nav {
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    width: 100%;
-    background: #1e293b;
-    display: flex;
-    justify-content: space-around;
-    /* Spaced out buttons */
-    align-items: center;
-    padding: 15px 0;
-    border-top: 2px solid var(--primary);
-    z-index: 1000;
-    box-shadow: 0 -5px 15px rgba(0, 0, 0, 0.5);
-}
-
-/* --- THE VERTICAL LIST --- */
-/* --- THE GRID CONTAINER --- */
-.vertical-questions-list {
-    flex-grow: 1;
-    display: grid !important;
-    grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)) !important;
-    gap: 20px;
-    padding: 20px !important;
-    box-sizing: border-box;
-    padding-bottom: 120px !important;
-}
-
-/* --- THE CARD --- */
-.host-selection-card {
-    position: relative;
-    display: flex !important;
-    flex-direction: column;
-    padding: 20px;
-    border-radius: 12px;
-    border: 2px solid transparent;
-    transition: all 0.2s ease;
-    background: #1e293b;
-    /* Base dark color */
-}
-
-/* Color Coding Logic */
-.host-selection-card.easy {
-    border-color: #27ae60;
-    box-shadow: 0 4px 15px rgba(39, 174, 96, 0.2);
-}
-
-.host-selection-card.medium {
-    border-color: #f39c12;
-    box-shadow: 0 4px 15px rgba(243, 156, 18, 0.2);
-}
-
-.host-selection-card.hard {
-    border-color: #e74c3c;
-    box-shadow: 0 4px 15px rgba(231, 76, 60, 0.2);
-}
-
-.host-selection-card:hover {
-    transform: translateY(-3px);
-    filter: brightness(1.2);
-    background: #2d3748;
-}
-
-/* --- MOBILE RESPONSIVENESS --- */
-@media (max-width: 850px) {
-    .vertical-questions-list {
-        grid-template-columns: 1fr !important;
+/* =========================================================
+   MOBILE
+   ========================================================= */
+@media (max-width: 600px) {
+    .spinning-blur {
+        /* Mobile GPUs struggle with blur during fast movement */
+        filter: none !important;
+        opacity: 0.9;
     }
-}
 
-/* Close Button stays on top of everything */
-.close-x {
-    position: fixed;
-    top: 15px;
-    right: 15px;
-    z-index: 9999;
-}
+    .slot-machine-wrap {
+        mask-image: linear-gradient(to bottom, transparent, black 30%, black 70%, transparent);
+        -webkit-mask-image: linear-gradient(to bottom, transparent, black 30%, black 70%, transparent);
+    }
 
-.close-x:active {
-    transform: translateY(2px);
-    box-shadow: 0 2px 0 #c0392b;
+    .slot-card {
+        font-size: clamp(1.5rem, 6vw, 4rem);
+        height: min(30vh, 200px);
+        white-space: nowrap;
+    }
 }
