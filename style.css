@@ -776,13 +776,33 @@ body:has(.full-overlay:not([hidden])) {
     border-radius: 12px;
     display: flex;
     align-items: center;
+    justify-content: space-between;
     font-weight: 600;
 }
 
-#playersList li::before {
+#playersList li span::before {
     content: "●";
     color: var(--good);
     margin-right: 15px;
+}
+
+.kick-btn {
+    background: transparent;
+    color: var(--text-muted);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    font-size: 0.9rem;
+    line-height: 1;
+    box-shadow: none;
+}
+
+.kick-btn:hover {
+    background: var(--bad);
+    color: #fff;
+    border-color: var(--bad);
 }
 
 /* --- TIMER / PROGRESS BAR --- */

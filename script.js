@@ -1,8 +1,10 @@
-import { db, ref, set, update, onValue, push } from "./firebase.js";
+import { db, ref, set, update, onValue, push, remove } from "./firebase.js?v=3.2";
 
 //#region 1. CONFIGURATION & GLOBAL STATE
+const SESSION_KEY = "quizalia_session";
 let lobbyCode = null;
 let playerName = null;
+let playerKey = null; // Firebase key of this player's entry, used for kick-detection
 let role = null;
 let countdownInterval = null;
 let questionBank = [];
@@ -103,6 +105,30 @@ function setQuestionsStatus(text, loaded) {
     if (randomBtn) randomBtn.disabled = !loaded;
     if (selectBtn) selectBtn.disabled = !loaded;
 }
+
+// Player names are user-supplied and get inserted via innerHTML — escape them.
+function escapeHtml(str) {
+    return String(str).replace(/[&<>"']/g, ch => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+    }[ch]));
+}
+
+// --- Session persistence (survives page refresh / reconnect) ---
+function saveSession(data) {
+    localStorage.setItem(SESSION_KEY, JSON.stringify(data));
+}
+
+function loadSession() {
+    try {
+        return JSON.parse(localStorage.getItem(SESSION_KEY));
+    } catch {
+        return null;
+    }
+}
+
+function clearSession() {
+    localStorage.removeItem(SESSION_KEY);
+}
 //#endregion
 
 //#region 3. DATA LOADING
@@ -153,6 +179,7 @@ document.getElementById("createLobbyBtn").addEventListener("click", () => {
         timerActive: false,
         spin: { status: "idle", targetIndex: 0, seed: 0 }
     }).then(() => {
+        saveSession({ lobbyCode, role: "host", playerName });
         setupLobbyCodeDisplay(lobbyCode);
         setupGameListeners();
         showSection("lobby");
@@ -208,7 +235,10 @@ document.getElementById("joinLobbyBtn").addEventListener("click", () => {
         playerName = finalName; // Set the global playerName to the unique one
 
         // 3. Push to Firebase
-        push(ref(db, `rooms/${lobbyCode}/players`), { name: playerName }).then(() => {
+        const playerRef = push(ref(db, `rooms/${lobbyCode}/players`), { name: playerName });
+        playerRef.then(() => {
+            playerKey = playerRef.key;
+            saveSession({ lobbyCode, role: "player", playerName, playerKey });
             setupLobbyCodeDisplay(lobbyCode);
             setupGameListeners();
             showSection("lobby");
@@ -221,6 +251,34 @@ document.getElementById("joinLobbyBtn").addEventListener("click", () => {
 document.getElementById("startGameBtn").addEventListener("click", () => {
     updateRoom({ status: "playing" });
 });
+
+// Restore a session after a page refresh / accidental close.
+function tryReconnect() {
+    const session = loadSession();
+    if (!session) return;
+
+    onValue(ref(db, `rooms/${session.lobbyCode}`), (snapshot) => {
+        const data = snapshot.val();
+        if (!data) { clearSession(); return; }
+
+        // If this was a player session, make sure we weren't kicked meanwhile.
+        if (session.role === "player" && !(data.players && data.players[session.playerKey])) {
+            clearSession();
+            return;
+        }
+
+        lobbyCode = session.lobbyCode;
+        role = session.role;
+        playerName = session.playerName;
+        playerKey = session.playerKey || null;
+
+        setupLobbyCodeDisplay(lobbyCode);
+        setupGameListeners();
+        updateUIByRole();
+        showSection(data.status === "playing" ? "game" : "lobby");
+        if (role === "host") generateQRCode(lobbyCode);
+    }, { onlyOnce: true });
+}
 //#endregion
 
 //#region 5. THEME & SPIN ACTIONS
@@ -463,18 +521,41 @@ if (resetBtn) resetBtn.onclick = resetRound;
 
 window.cancelQuestion = resetRound;
 
+window.kickPlayer = (key) => {
+    if (!confirm("Remove this player from the lobby?")) return;
+    remove(ref(db, `rooms/${lobbyCode}/players/${key}`));
+};
+
 //#endregion
 
 //#region 7. SYNC LISTENERS
 function setupGameListeners() {
-    onValue(ref(db, 'rooms/' + lobbyCode), (snapshot) => {
+    const roomRef = ref(db, 'rooms/' + lobbyCode);
+    const unsubscribe = onValue(roomRef, (snapshot) => {
         const data = snapshot.val();
         if (!data) return;
 
+        // Kick detection: if our own player entry disappeared, we were removed.
+        // (Firebase nulls out `players` entirely once its last child is gone,
+        // so this can't require data.players to be truthy first.)
+        if (role === "player" && playerKey && !(data.players && data.players[playerKey])) {
+            clearSession();
+            unsubscribe();
+            role = null; lobbyCode = null; playerName = null; playerKey = null;
+            showSection("home");
+            alert("You were removed from the lobby by the host.");
+            return;
+        }
+
         // Players List Sync
         if (data.players) {
-            document.getElementById("playersList").innerHTML = Object.values(data.players)
-                .map(p => `<li>👤 ${p.name}</li>`).join("");
+            document.getElementById("playersList").innerHTML = Object.entries(data.players)
+                .map(([key, p]) => `
+                    <li>
+                        <span>👤 ${escapeHtml(p.name)}</span>
+                        ${role === "host" ? `<button class="kick-btn" onclick="kickPlayer('${key}')" title="Remove player">✕</button>` : ""}
+                    </li>
+                `).join("");
         }
 
         // Sound & Winner Sync
@@ -582,7 +663,7 @@ function renderHostUI(data) {
         document.getElementById("activeWinnerName").innerHTML = `
             <div class="winner-panel">
                 <div class="winner-eyebrow">🚨 Team buzzed</div>
-                <div class="winner-name">${data.winner}</div>
+                <div class="winner-name">${escapeHtml(data.winner)}</div>
                 ${answerBlock}
                 ${questionBlock}
             </div>
@@ -766,4 +847,5 @@ if (timeLimitSelect) {
 }
 
 populateBuzzerMenus();
+tryReconnect();
 //#endregion
