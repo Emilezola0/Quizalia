@@ -15,6 +15,9 @@ let lastWinner = null;
 let lastSelectedTheme = null;
 let lastTimerState = false;
 let currentTimeLimit = 10;
+let latestRoomData = null;     // last room snapshot, used by the host's team list
+let handledPickSeed = null;    // host: theme pick already opened
+let renderedPickSeed = null;   // player: theme pick already rendered
 
 const buzzerSounds = {
     "Default": "sounds/buzzer/BuzzClassic.mp3",
@@ -102,8 +105,10 @@ function setQuestionsStatus(text, loaded) {
     if (statusEl) statusEl.textContent = text;
     const randomBtn = document.getElementById("randomThemeBtn");
     const selectBtn = document.getElementById("selectThemeBtn");
+    const teamPickBtn = document.getElementById("teamPickBtn");
     if (randomBtn) randomBtn.disabled = !loaded;
     if (selectBtn) selectBtn.disabled = !loaded;
+    if (teamPickBtn) teamPickBtn.disabled = !loaded;
 }
 
 // Player names are user-supplied and get inserted via innerHTML — escape them.
@@ -251,6 +256,17 @@ document.getElementById("joinLobbyBtn").addEventListener("click", () => {
 document.getElementById("startGameBtn").addEventListener("click", () => {
     updateRoom({ status: "playing" });
 });
+
+// Host only: delete the room, which sends every player back to the home screen.
+function closeSession() {
+    if (role !== "host" || !lobbyCode) return;
+    if (!confirm("Fermer la session ? Toutes les équipes seront déconnectées.")) return;
+    const code = lobbyCode;
+    leaveRoom();
+    remove(ref(db, `rooms/${code}`));
+}
+
+document.querySelectorAll(".close-session-btn").forEach(btn => btn.onclick = closeSession);
 
 // Restore a session after a page refresh / accidental close.
 function tryReconnect() {
@@ -426,6 +442,107 @@ document.getElementById("selectThemeBtn").onclick = () => {
     document.getElementById("themeListModal").hidden = false;
 };
 
+// --- Team Select Theme: the host picks a team, that team chooses the theme ---
+function closeThemeModal() {
+    document.getElementById("themeListModal").hidden = true;
+}
+
+function renderModalHeader(container, title, onClose) {
+    container.innerHTML = `
+        <div class="fiche-nav-header">
+            <div class="fiche-info"><h2>${title}</h2></div>
+            <button class="close-x">✕ Close</button>
+        </div>
+    `;
+    container.querySelector(".close-x").onclick = onClose;
+}
+
+document.getElementById("teamPickBtn").onclick = () => {
+    const players = Object.entries(latestRoomData?.players || {});
+    if (players.length === 0) return alert("No team in the lobby yet!");
+
+    const container = document.getElementById("themeButtonsContainer");
+    renderModalHeader(container, "Quelle équipe choisit le thème ?", closeThemeModal);
+    const list = document.createElement("div");
+    list.className = "team-picker-grid pick-team-list";
+    players.forEach(([key, p]) => {
+        const btn = document.createElement("button");
+        btn.textContent = p.name;
+        btn.className = "btn-gm gray";
+        btn.onclick = () => startTeamPick(key, p.name);
+        list.appendChild(btn);
+    });
+    container.appendChild(list);
+    document.getElementById("themeListModal").hidden = false;
+};
+
+function startTeamPick(key, name) {
+    updateRoom({ themePick: { key, name, status: "choosing", seed: Date.now() } });
+    renderPickWaiting(name);
+}
+
+function cancelTeamPick() {
+    updateRoom({ themePick: null });
+    closeThemeModal();
+}
+
+function renderPickWaiting(name) {
+    const container = document.getElementById("themeButtonsContainer");
+    renderModalHeader(container, "Team Select Theme", cancelTeamPick);
+    const box = document.createElement("div");
+    box.className = "pick-waiting";
+    box.innerHTML = `
+        <div class="pick-waiting-icon">⏳</div>
+        <p><strong>${escapeHtml(name)}</strong> choisit un thème…</p>
+        <button class="btn-gm gray">Annuler</button>
+    `;
+    box.querySelector("button").onclick = cancelTeamPick;
+    container.appendChild(box);
+    document.getElementById("themeListModal").hidden = false;
+}
+
+// Called on every room update, for both roles.
+function syncThemePick(data) {
+    const pick = data.themePick;
+
+    if (role === "host") {
+        // The team has chosen: open the question cards of that theme.
+        if (pick?.status === "chosen" && pick.seed !== handledPickSeed) {
+            handledPickSeed = pick.seed;
+            if (groupedQuestions[pick.theme]) {
+                openDifficultySelection(pick.theme);
+                document.getElementById("themeListModal").hidden = false;
+            }
+            updateRoom({ themePick: null });
+        }
+        return;
+    }
+
+    const picker = document.getElementById("teamThemePicker");
+    const isMine = pick?.status === "choosing" && pick.key === playerKey;
+    if (!picker) return;
+    picker.hidden = !isMine;
+    if (!isMine) {
+        renderedPickSeed = null;
+        return;
+    }
+    if (renderedPickSeed === pick.seed) return;
+    renderedPickSeed = pick.seed;
+
+    const list = document.getElementById("teamThemeList");
+    list.innerHTML = "";
+    uniqueThemes.forEach(themeName => {
+        const btn = document.createElement("button");
+        btn.textContent = themeName;
+        btn.className = "btn-gm gray";
+        btn.onclick = () => {
+            picker.hidden = true;
+            update(ref(db, `rooms/${lobbyCode}/themePick`), { status: "chosen", theme: themeName });
+        };
+        list.appendChild(btn);
+    });
+}
+
 //#endregion
 
 //#region 6. GAME BUTTONS (LATENCY OPTIMIZED)
@@ -529,21 +646,41 @@ window.kickPlayer = (key) => {
 //#endregion
 
 //#region 7. SYNC LISTENERS
+let roomUnsubscribe = null;
+
+// Back to the home screen, forgetting the room (kick, or session closed by the host).
+function leaveRoom(message) {
+    clearSession();
+    if (roomUnsubscribe) roomUnsubscribe();
+    roomUnsubscribe = null;
+    role = null; lobbyCode = null; playerName = null; playerKey = null;
+    latestRoomData = null;
+    clearInterval(countdownInterval);
+    ["themeListModal", "teamThemePicker", "fullScreenCard", "gmActionPanel", "slotMachineOverlay", "timerContainer"]
+        .forEach(id => { const el = document.getElementById(id); if (el) el.hidden = true; });
+    document.body.classList.remove("buzzer-winner", "buzzer-locked");
+    showSection("home");
+    if (message) alert(message);
+}
+
 function setupGameListeners() {
+    if (roomUnsubscribe) roomUnsubscribe();
     const roomRef = ref(db, 'rooms/' + lobbyCode);
-    const unsubscribe = onValue(roomRef, (snapshot) => {
+    roomUnsubscribe = onValue(roomRef, (snapshot) => {
         const data = snapshot.val();
-        if (!data) return;
+
+        // The room no longer exists: the host closed the session.
+        if (!data) {
+            if (role) leaveRoom(role === "player" ? "The host closed the session." : null);
+            return;
+        }
+        latestRoomData = data;
 
         // Kick detection: if our own player entry disappeared, we were removed.
         // (Firebase nulls out `players` entirely once its last child is gone,
         // so this can't require data.players to be truthy first.)
         if (role === "player" && playerKey && !(data.players && data.players[playerKey])) {
-            clearSession();
-            unsubscribe();
-            role = null; lobbyCode = null; playerName = null; playerKey = null;
-            showSection("home");
-            alert("You were removed from the lobby by the host.");
+            leaveRoom("You were removed from the lobby by the host.");
             return;
         }
 
@@ -585,6 +722,7 @@ function setupGameListeners() {
         }
 
         role === "host" ? renderHostUI(data) : renderPlayerUI(data);
+        syncThemePick(data);
 
         // Timer Sync
         const timerContainer = document.getElementById("timerContainer");
@@ -682,7 +820,12 @@ function renderPlayerUI(data) {
     const topThemeElem = document.getElementById("playerThemeDisplayTop");
 
     if (topThemeElem) {
-        topThemeElem.textContent = data.activeCard ? data.activeCard.Theme : "WAITING...";
+        const pick = data.themePick;
+        if (pick?.status === "choosing" && pick.key !== playerKey) {
+            topThemeElem.textContent = `${pick.name} choisit le thème…`;
+        } else {
+            topThemeElem.textContent = data.activeCard ? data.activeCard.Theme : "WAITING...";
+        }
     }
 
     // Reset background if no winner
@@ -713,6 +856,7 @@ function renderPlayerUI(data) {
 function updateUIByRole() {
     const isHost = (role === "host");
     document.getElementById("startGameBtn").hidden = !isHost;
+    document.getElementById("closeLobbyBtn").hidden = !isHost;
     document.getElementById("hostView").hidden = !isHost;
     document.getElementById("playerView").hidden = isHost;
 }

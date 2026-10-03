@@ -9,7 +9,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="stylesheet"
         href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;800;900&family=Work+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap">
-    <link rel="stylesheet" href="style.css?v=3.2">
+    <link rel="stylesheet" href="style.css?v=3.6">
     <script src="https://cdn.jsdelivr.net/npm/qrious@4.0.2/dist/qrious.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
 </head>
@@ -47,6 +47,7 @@
             <canvas id="qrCode"></canvas>
             <ul id="playersList"></ul>
             <button id="startGameBtn" hidden>Start Game</button>
+            <button id="closeLobbyBtn" class="btn-gm orange close-session-btn" hidden>🚪 Close Session</button>
         </div>
     </section>
 
@@ -76,8 +77,10 @@
             <div class="theme-controls card">
                 <button id="randomThemeBtn" disabled>🎰 Random Spin</button>
                 <button id="selectThemeBtn" disabled>📂 Pick Theme</button>
+                <button id="teamPickBtn" disabled>🎯 Team Select Theme</button>
                 <button id="keepThemeBtn" class="btn-gm gray">🔁 Keep Last</button>
                 <button id="manualModeBtn" class="btn-gm gray">⚡ Manual Buzzer</button>
+                <button id="closeSessionBtn" class="btn-gm orange close-session-btn">🚪 Close Session</button>
                 <p id="questionsStatus" class="status-text">Loading questions…</p>
 
                 <div class="timer-separator"></div>
@@ -128,10 +131,19 @@
             </div>
 
             <button id="buzzBtn">BUZZ !</button>
+
+            <!-- TEAM THEME PICKER (shown when the host lets this team choose) -->
+            <div id="teamThemePicker" class="team-picker" hidden>
+                <div class="team-picker-header">
+                    <span class="theme-label">À vous de jouer</span>
+                    <h2>Choisissez un thème</h2>
+                </div>
+                <div id="teamThemeList" class="team-picker-grid"></div>
+            </div>
         </div>
     </section>
 
-    <script type="module" src="script.js?v=3.4"></script>
+    <script type="module" src="script.js?v=3.7"></script>
 </body>
 
 </html>

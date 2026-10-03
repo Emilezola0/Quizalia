@@ -1004,3 +1004,81 @@ body.buzzer-winner {
         white-space: nowrap;
     }
 }
+
+/* --- TEAM SELECT THEME --- */
+.pick-waiting {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+    padding: 60px 16px;
+    text-align: center;
+    font-size: 1.2rem;
+    color: var(--text-muted);
+}
+
+.pick-waiting strong {
+    color: var(--accent);
+}
+
+.pick-waiting-icon {
+    font-size: 3rem;
+}
+
+.pick-waiting .btn-gm {
+    flex: none;
+    width: min(260px, 100%);
+}
+
+.team-picker {
+    position: fixed;
+    inset: 0;
+    z-index: 2000;
+    overflow-y: auto;
+    background: var(--ink);
+    padding: 20px 16px calc(20px + var(--safe-bottom));
+}
+
+.team-picker-header {
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+.team-picker-header h2 {
+    font-family: var(--font-display);
+    color: var(--accent);
+    margin: 6px 0 0;
+}
+
+.team-picker-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 12px;
+    max-width: 900px;
+    margin: 0 auto;
+}
+
+.team-picker-grid .btn-gm {
+    padding: 18px 10px;
+    font-size: 0.9rem;
+    text-transform: none;
+}
+.pick-team-list {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    width: 100%;
+    padding: 24px 16px;
+    box-sizing: border-box;
+}
+
+.pick-team-list .btn-gm {
+    flex: 0 1 220px;
+}
+/* --- CLOSE SESSION (host) --- */
+#closeLobbyBtn {
+    margin: 14px auto 0;
+    width: fit-content;
+    padding: 12px 22px;
+    font-size: 0.85rem;
+}
