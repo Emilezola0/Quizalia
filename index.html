@@ -9,7 +9,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="stylesheet"
         href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;800;900&family=Work+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap">
-    <link rel="stylesheet" href="style.css?v=3.6">
+    <link rel="stylesheet" href="style.css?v=4.0">
     <script src="https://cdn.jsdelivr.net/npm/qrious@4.0.2/dist/qrious.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
 </head>
@@ -44,6 +44,10 @@
                 </select>
             </div>
 
+            <!-- VIRTUAL BOARD: host toggle / player pawn picker (filled by board.js) -->
+            <div id="lobbyBoardHost" class="lobby-board" hidden></div>
+            <div id="pawnPicker" class="lobby-board" hidden></div>
+
             <canvas id="qrCode"></canvas>
             <ul id="playersList"></ul>
             <button id="startGameBtn" hidden>Start Game</button>
@@ -71,6 +75,15 @@
                 </div>
             </div>
         </div>
+
+        <!-- VIRTUAL BOARD: status bar + tabs (filled by board.js) -->
+        <div id="boardBar" class="board-bar" hidden></div>
+        <nav id="viewTabs" class="view-tabs" hidden>
+            <button data-tab="questions">Questions</button>
+            <button data-tab="plateau">Plateau</button>
+        </nav>
+        <div id="hostBoardView" class="board-view" hidden></div>
+        <div id="playerBoardView" class="board-view" hidden></div>
 
         <!-- HOST VIEW -->
         <div id="hostView" hidden>
@@ -143,7 +156,10 @@
         </div>
     </section>
 
-    <script type="module" src="script.js?v=3.7"></script>
+    <div id="cardModal" class="modal" hidden></div>
+    <div id="phaseToast" class="phase-toast" hidden></div>
+
+    <script type="module" src="script.js?v=4.0"></script>
 </body>
 
 </html>

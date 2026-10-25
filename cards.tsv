@@ -1,0 +1,27 @@
+Nom	Condition d'usage	Duration	Description
+ Votre tombeau sera notre tombeau	After		En l'activant vous reculerez avec l'équipe qui vient de reculer
+A Moi !	Before		Empêchez toutes les équipes de proposer une réponse. Mais, dans le cas d'une mauvaise réponse, vous reculerez de 4 cases.
+A toi de jouer !			Choisis une personne pour chaque équipe adverse, seule elle pourra réponndre à la question.
+C'est l'heure de rater	Before, Question		Chaque équipe qui rate pendant cette question vous fera avancer de 1 case
+Cadeau ?!			Désigne 1 équipe, celle désignée, devra jeter un dé de 4 si : 1 : Tu avance de 1 case 2 : L'équipe recule de 1 case 3 : L'équipe recule de 2 cases 4 : L'équipe avance de 4 cases
+Chuuuut !			Empêche une équipe de ton choix de participer/répondre à la question actuelle
+Deuxième chance Stp !	Question, Buzz		Tu as le droit de donner deux réponses différentes à la suite.
+Echange Avec ...			Echange deux cartes adverses sans les regarder. Interdication d'échanger avec toi.
+Evitons les dégâts	Before, Question		Si cette équipe répond bon à cette question elle se retrouvera bloquer à la prochaine question
+Gamble Lover			Pour déterminer votre déplacement, lancez simultanément un dé à 6 faces et un dé à 4 faces. Sous trayez le résultat du dé de 4 de celui du dé de 6 : la différence obtenue correspond au nombre de cases dont vous avancez.
+Gilet par Case	Phase Finale		Annule une perte de 5 Cases
+J'ai confiance en toi			Choisissez un groupe pour qu'il donne la réponse. Si le groupe donne une mauvaise réponse, vous reculerez tous du montant du jet de dé de 4. Sinon, vous avancez ensemble du montant du jet de 4,
+Je Retourne, Je Regarde et pas que !			Te permet de regarder la prochaine carte de la pioche et de décider si tu la mets en dessous du paquets.
+Juste rétributionn des points	Before, Question		Tout le monde gagne les points de la question
+Kamikaze	Phase Finale		Si tu es éliminé ou en mode survie, tu peux choisir une personne qui perdra aussi 5 cases avec toi dans ta chute.
+Miroir	Phase Finale		Renvoie la perte de Case à celui qui t'a ciblé
+Objection !			Annule l'effet d'une case OU d'une carte à effet
+Oups !	Before		Si une équipe répond faux, l'oblige à reculer de 2 cases au lieu de rester sur place.
+Pas Mal !	After		Active le même effet de case que l'équipe qui vient d'avancer (marche aussi lorsque vous avancez)
+Saut de Puce	Before, Question		Si tu as bon, tu peux choisir d'avancer de 1 case seulement.
+Soul Link		3Q	Si l'équipe choisie gagnne vous avancez aussi, s'ils perdent vous devez reculer aussi du même montant.
+Transfert de Stress	Buzz		Si tu connais pas la réponse, tu peux désigner une autre équipe. Si elle répond mal, elle recule de 2 cases.
+Turbo	Before, Question		Multiplie par 2 ton gain de cases après une bonne réponse Après multiplication +1 case, si utiliser avant la question
+Un groupe ça se trompe énormément		3Q	Si queqlu'un répond bon à la question +1 case pour les autres équipes Si une équipe échoue : +2 cases pour vous. 
+Vampire	Phase Finale		Au lieu de faire perdre 5 cases à quelqu'un, tu lui en voles 3 (il recule de 3, tu avances de 3)
+Vol Visible !!!			Si tu tombes sur la case Oeil, au lieu de simplement regarder la carte d'un adversaire, tu peux décider de lui voler.

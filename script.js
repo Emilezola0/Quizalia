@@ -1,4 +1,5 @@
-import { db, ref, set, update, onValue, push, remove } from "./firebase.js?v=3.2";
+import { db, ref, set, update, onValue, push, remove, runTransaction } from "./firebase.js?v=4.0";
+import * as Board from "./board.js?v=4.0";
 
 //#region 1. CONFIGURATION & GLOBAL STATE
 const SESSION_KEY = "quizalia_session";
@@ -253,8 +254,10 @@ document.getElementById("joinLobbyBtn").addEventListener("click", () => {
     }, { onlyOnce: true });
 });
 
-document.getElementById("startGameBtn").addEventListener("click", () => {
-    updateRoom({ status: "playing" });
+document.getElementById("startGameBtn").addEventListener("click", async () => {
+    // With the virtual board, this also places the teams and shuffles the deck.
+    const boardSetup = await Board.prepareStart(latestRoomData);
+    updateRoom({ ...boardSetup, status: "playing" });
 });
 
 // Host only: delete the room, which sends every player back to the home screen.
@@ -568,6 +571,7 @@ const validateBtn = document.getElementById("validateBtn");
 if (validateBtn) {
     validateBtn.onclick = () => {
         new Audio("sounds/CorrectAnswer.mp3").play().catch(() => { });
+        Board.onCorrect(latestRoomData?.winner);
         updateRoom({
             winner: null,
             activeCard: null,
@@ -640,7 +644,7 @@ window.cancelQuestion = resetRound;
 
 window.kickPlayer = (key) => {
     if (!confirm("Remove this player from the lobby?")) return;
-    remove(ref(db, `rooms/${lobbyCode}/players/${key}`));
+    updateRoom({ ...Board.kickUpdates(latestRoomData, key), [`players/${key}`]: null });
 };
 
 //#endregion
@@ -655,6 +659,7 @@ function leaveRoom(message) {
     roomUnsubscribe = null;
     role = null; lobbyCode = null; playerName = null; playerKey = null;
     latestRoomData = null;
+    Board.resetBoardState();
     clearInterval(countdownInterval);
     ["themeListModal", "teamThemePicker", "fullScreenCard", "gmActionPanel", "slotMachineOverlay", "timerContainer"]
         .forEach(id => { const el = document.getElementById(id); if (el) el.hidden = true; });
@@ -689,7 +694,7 @@ function setupGameListeners() {
             document.getElementById("playersList").innerHTML = Object.entries(data.players)
                 .map(([key, p]) => `
                     <li>
-                        <span>👤 ${escapeHtml(p.name)}</span>
+                        <span>${Board.pawnIcon(p.pawn) || "👤"} ${escapeHtml(p.name)}</span>
                         ${role === "host" ? `<button class="kick-btn" onclick="kickPlayer('${key}')" title="Remove player">✕</button>` : ""}
                     </li>
                 `).join("");
@@ -723,6 +728,7 @@ function setupGameListeners() {
 
         role === "host" ? renderHostUI(data) : renderPlayerUI(data);
         syncThemePick(data);
+        Board.onData(data);
 
         // Timer Sync
         const timerContainer = document.getElementById("timerContainer");
@@ -859,6 +865,7 @@ function updateUIByRole() {
     document.getElementById("closeLobbyBtn").hidden = !isHost;
     document.getElementById("hostView").hidden = !isHost;
     document.getElementById("playerView").hidden = isHost;
+    Board.applyTabs();
 }
 //#endregion
 
@@ -991,5 +998,12 @@ if (timeLimitSelect) {
 }
 
 populateBuzzerMenus();
+Board.initBoard({
+    db, ref, update, runTransaction,
+    getLobbyCode: () => lobbyCode,
+    getRole: () => role,
+    getPlayerKey: () => playerKey,
+    getThemes: () => uniqueThemes
+});
 tryReconnect();
 //#endregion
