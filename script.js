@@ -1,5 +1,7 @@
-import { db, ref, set, update, onValue, push, remove, runTransaction } from "./firebase.js?v=4.0";
-import * as Board from "./board.js?v=4.0";
+// Plain paths on purpose: index.html's import map adds the release version to them.
+import { db, ref, set, update, onValue, push, remove, runTransaction } from "./firebase.js";
+import * as Board from "./board.js";
+import { initUpdater } from "./updater.js";
 
 //#region 1. CONFIGURATION & GLOBAL STATE
 const SESSION_KEY = "quizalia_session";
@@ -141,7 +143,7 @@ function clearSession() {
 let groupedQuestions = {}; // New global state
 let uniqueThemes = [];    // The list for the wheel
 
-Papa.parse("questions.csv", {
+Papa.parse("questions.csv" + (window.APP_ASSET_QUERY || ""), {
     download: true,
     header: true,
     skipEmptyLines: true,
@@ -1005,5 +1007,6 @@ Board.initBoard({
     getPlayerKey: () => playerKey,
     getThemes: () => uniqueThemes
 });
+initUpdater();
 tryReconnect();
 //#endregion

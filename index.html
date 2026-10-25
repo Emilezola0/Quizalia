@@ -9,7 +9,45 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="stylesheet"
         href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;800;900&family=Work+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap">
-    <link rel="stylesheet" href="style.css?v=4.0">
+
+    <!-- ============================================================
+         RELEASING AN UPDATE: bump "app-version" below (and optionally
+         the notes) in this file, then deploy. That is the only place a
+         version lives: every asset URL is derived from it, and open
+         tabs show an "update available" popup within a minute.
+         ============================================================ -->
+    <meta name="app-version" content="4.1.0">
+    <meta name="app-notes" content="Plateau virtuel, cartes à effet et mises à jour automatiques.">
+    <style>html { background: #10121a; }</style>
+    <script>
+        // Version-stamps every asset so a new release can never be served from a stale cache.
+        // On localhost the stamp is the current time, so development always sees fresh files.
+        (function () {
+            var meta = document.querySelector('meta[name="app-version"]');
+            var version = meta ? meta.content : '0';
+            var local = /^(localhost|127\.0\.0\.1|\[::1\])$/.test(location.hostname) || location.protocol === 'file:';
+            var query = '?v=' + encodeURIComponent(local ? Date.now() : version);
+            window.APP_VERSION = version;
+            window.APP_ASSET_QUERY = query;
+
+            // Modules import each other by plain path; the import map adds the version.
+            if (window.HTMLScriptElement && HTMLScriptElement.supports && HTMLScriptElement.supports('importmap')) {
+                var map = document.createElement('script');
+                map.type = 'importmap';
+                var imports = {};
+                ['firebase', 'board', 'boardView', 'updater'].forEach(function (name) {
+                    imports['./' + name + '.js'] = './' + name + '.js' + query;
+                });
+                map.textContent = JSON.stringify({ imports: imports });
+                document.head.appendChild(map);
+            }
+
+            var css = document.createElement('link');
+            css.rel = 'stylesheet';
+            css.href = 'style.css' + query;
+            document.head.appendChild(css);
+        })();
+    </script>
     <script src="https://cdn.jsdelivr.net/npm/qrious@4.0.2/dist/qrious.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
 </head>
@@ -159,7 +197,17 @@
     <div id="cardModal" class="modal" hidden></div>
     <div id="phaseToast" class="phase-toast" hidden></div>
 
-    <script type="module" src="script.js?v=4.0"></script>
+    <footer id="appVersion" class="app-version"></footer>
+
+    <script>
+        // Added at the end of <body> so the DOM is complete when the app starts.
+        (function () {
+            var s = document.createElement('script');
+            s.type = 'module';
+            s.src = 'script.js' + window.APP_ASSET_QUERY;
+            document.body.appendChild(s);
+        })();
+    </script>
 </body>
 
 </html>

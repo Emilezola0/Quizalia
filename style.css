@@ -1546,3 +1546,43 @@ button:disabled {
 @media (prefers-reduced-motion: reduce) {
     .pawn, .pawn.hop i, .phase-toast { transition: none; animation: none; }
 }
+
+/* --- APP VERSION + UPDATE POPUP --- */
+.app-version {
+    margin: 40px 0 10px;
+    font-family: var(--font-mono);
+    font-size: 0.68rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    opacity: 0.6;
+}
+
+.update-banner {
+    position: fixed;
+    left: 50%;
+    bottom: calc(16px + var(--safe-bottom));
+    transform: translateX(-50%);
+    z-index: 7000;
+    width: min(560px, calc(100% - 24px));
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    flex-wrap: wrap;
+    padding: 14px 16px;
+    background: var(--surface);
+    border: 1px solid var(--accent);
+    border-radius: 16px;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.55);
+    text-align: left;
+    animation: toastIn 0.3s ease-out;
+}
+
+.update-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1 1 220px; }
+.update-text b { font-family: var(--font-display); font-size: 1.15rem; font-weight: 800; letter-spacing: 0.02em; }
+.update-text span { font-family: var(--font-mono); font-size: 0.74rem; color: var(--accent); }
+.update-text small { font-size: 0.74rem; color: var(--text-muted); }
+.update-acts { display: flex; gap: 8px; }
+.update-acts button { padding: 9px 14px; font-size: 0.82rem; }
+.update-acts button.ghost { background: var(--surface-2); color: var(--text); border: 1px solid var(--line); }

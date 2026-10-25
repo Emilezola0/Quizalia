@@ -7,7 +7,7 @@
 //   reveal:      { playerKey: { card, from, ts } }   // private "Œil" reveal
 //   players/{key}: { name, pawn, pos, status: "active"|"survie"|"out", recoils, hand: [cardIndex] }
 
-import { PAWNS, createBoardView, legendHTML, buildCellTypes, pawnIconHTML } from "./boardView.js?v=4.0";
+import { PAWNS, createBoardView, legendHTML, buildCellTypes, pawnIconHTML } from "./boardView.js";
 
 const $ = id => document.getElementById(id);
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -57,7 +57,7 @@ const COND_FR = { Before: "Avant", After: "Après", Question: "Question", Buzz: 
 
 function loadCards() {
     return new Promise(resolve => {
-        Papa.parse("cards.tsv", {
+        Papa.parse("cards.tsv" + (window.APP_ASSET_QUERY || ""), {
             download: true,
             header: true,
             skipEmptyLines: true,
